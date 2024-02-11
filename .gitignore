@@ -1,0 +1,9 @@
+# Cache
+__pycache__/
+
+# VSCode settings
+.vscode/
+
+# Large files
+data/
+models/saved/
