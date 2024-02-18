@@ -2,7 +2,7 @@ import torch
 
 from models.model import SNN
 from utils.data_loader import EventsDataset
-from trainer import Trainer
+from utils.trainer import Trainer
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
