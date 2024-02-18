@@ -1,6 +1,6 @@
 import torch
-from data.SpikingDataLoader import SpikingDataLoader
-from data.SpikingDataset import SpikingDataset
+from utils.SpikingDataLoader import SpikingDataLoader
+from utils.SpikingDataset import SpikingDataset
 
 from models.model import SNN
 
