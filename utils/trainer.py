@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from utils.data_loader import sparse_data_generator_from_hdf5_spikes
 from utils.visualization import plot_voltage_traces
 
 
@@ -16,7 +15,7 @@ class Trainer:
         self.nb_inputs = model.nb_inputs
         self.max_time = model.max_time
 
-    def train(self, x_data, y_data, nb_epochs=10, lr=1e-3):
+    def train(self, dataloader, nb_epochs=10, lr=1e-3):
         params = [self.model.w1, self.model.w2, self.model.v1]
         optimizer = torch.optim.Adamax(params, lr=lr, betas=(0.9, 0.999))
 
@@ -29,15 +28,7 @@ class Trainer:
         for e in range(nb_epochs):
             local_loss = []
             local_accuracy = []
-            for x_local, y_local in sparse_data_generator_from_hdf5_spikes(
-                x_data,
-                y_data,
-                self.batch_size,
-                self.nb_steps,
-                self.nb_inputs,
-                self.max_time,
-                self.device,
-            ):
+            for x_local, y_local in dataloader:
                 output, recs = self.model.forward(x_local.to_dense())
                 _, spks = recs
                 m, _ = torch.max(output, 1)
@@ -76,19 +67,10 @@ class Trainer:
             )
         return loss_hist, train_accuracy_hist
 
-    def compute_accuracy(self, x_data, y_data):
+    def compute_accuracy(self, dataloader):
         """Computes classification accuracy on supplied data in batches."""
         accs = []
-        for x_local, y_local in sparse_data_generator_from_hdf5_spikes(
-            x_data,
-            y_data,
-            self.batch_size,
-            self.nb_steps,
-            self.nb_inputs,
-            self.max_time,
-            self.device,
-            shuffle=False,
-        ):
+        for x_local, y_local in dataloader:
             output, _ = self.model.forward(x_local.to_dense())
             m, _ = torch.max(output, 1)  # max over time
             _, am = torch.max(m, 1)  # argmax over output units
@@ -96,24 +78,18 @@ class Trainer:
             accs.append(tmp)
         return np.mean(accs)
 
-    def visualize_output(self, x_data, y_data, nb_batches=1):
+    def visualize_output(self, dataloader, nb_batches=1):
         batch_counter = 0
-        for x_local, y_local in sparse_data_generator_from_hdf5_spikes(
-            x_data,
-            y_data,
-            self.batch_size,
-            self.nb_steps,
-            self.nb_inputs,
-            self.max_time,
-            self.device,
-            shuffle=False,
-        ):
+        for x_local, y_local in dataloader:
             output, _ = self.model.forward(x_local.to_dense())
+            two_maxims, _ = torch.max(output, 1)  # max over time
+            _, model_preds = torch.max(two_maxims, 1)  # argmax over output units
+            diff = torch.abs(two_maxims[:, 0] - two_maxims[:, 1])
             plot_voltage_traces(
-                output.detach().cpu().numpy(),
-                labels=y_local.detach().cpu().tolist(),
+                mem=output.detach().cpu().numpy(),
+                diff=diff.detach().cpu().numpy(),
+                labels=model_preds.detach().cpu().tolist(),
                 dim=(1, self.batch_size),
-                renderer=self.graph_renderer,
             )
 
             batch_counter += 1
