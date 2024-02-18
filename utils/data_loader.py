@@ -1,6 +1,7 @@
 import os
 import h5py
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch
 
@@ -29,6 +30,8 @@ class EventsDataset:
         self.max_time = max_time
         self.nb_steps = nb_steps
 
+        self.folders = []
+        self.video_files = []
         self.samples = []
         self.labels = []
 
@@ -80,7 +83,8 @@ class EventsDataset:
                         max_timestamp = sample_max
                     self.samples.append(sample)
                     self.labels.append(self.__get_label(folder))
-                    # print(f"Loaded {events_file}")
+                    self.video_files.append(f"{dataset_folder}/{folder}/dvs-video.avi")
+                    self.folders.append(folder)
 
                 except Exception as e:
                     print(f"Error in {events_file}")
@@ -97,6 +101,36 @@ class EventsDataset:
 
     def get_samples(self):
         return self.samples, self.labels
+
+    def get_labels(self):
+        return self.labels
+
+    def get_video_files(self):
+        return self.video_files
+
+    def set_correct_label(self, index, label):
+        self.labels[index] = label
+
+    def save_labels(self):
+        df = pd.DataFrame(
+            {
+                "folders": self.folders,
+                "video_files": self.video_files,
+                "label": self.labels,
+            }
+        )
+        df.to_csv(
+            f"{self.__get_dataset_folder(self.selected_dataset)}/labels.csv",
+            index=False,
+        )
+
+    def load_labels(self):
+        df = pd.read_csv(
+            f"{self.__get_dataset_folder(self.selected_dataset)}/labels.csv"
+        )
+        self.folders = df["folders"].tolist()
+        self.video_files = df["video_files"].tolist()
+        self.labels = df["label"].tolist()
 
     def visualize_samples(self, nb_batches):
         batch_counter = 0
