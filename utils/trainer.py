@@ -5,13 +5,11 @@ import torch.nn as nn
 from utils.data_loader import sparse_data_generator_from_hdf5_spikes
 from utils.visualization import plot_voltage_traces
 
-# from utils.visualization import live_plot
-
 
 class Trainer:
-    def __init__(self, model):
+    def __init__(self, model, graph_renderer=None):
         self.model = model
-
+        self.graph_renderer = graph_renderer
         self.device = model.device
         self.batch_size = model.batch_size
         self.nb_steps = model.nb_steps
@@ -72,7 +70,7 @@ class Trainer:
             loss_hist.append(mean_loss)
             mean_accuracy = np.mean(local_accuracy)
             train_accuracy_hist.append(mean_accuracy)
-            # live_plot(loss_hist)
+            # live_plot(loss_hist, title="Loss History", renderer=self.graph_renderer)
             print(
                 f"Epoch {e + 1}: Loss = {mean_loss:.4f} \t Training accuracy = {mean_accuracy:.4f}"
             )
@@ -115,6 +113,7 @@ class Trainer:
                 output.detach().cpu().numpy(),
                 labels=y_local.detach().cpu().tolist(),
                 dim=(1, self.batch_size),
+                renderer=self.graph_renderer,
             )
 
             batch_counter += 1
