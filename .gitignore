@@ -7,3 +7,6 @@ __pycache__/
 # Large files
 data/
 models/saved/
+
+# Temporary files
+temp/
