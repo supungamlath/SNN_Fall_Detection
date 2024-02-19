@@ -1,7 +1,6 @@
 from datetime import datetime
 import os
 import streamlit as st
-import torch
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.SpikingDataset import SpikingDataset
 from utils.Trainer import Trainer

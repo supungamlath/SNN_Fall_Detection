@@ -1,6 +1,5 @@
 import os
 import streamlit as st
-import torch
 
 from models.model import SNN
 from utils.helpers import load_params, save_params
