@@ -76,32 +76,33 @@ if selected_model:
     else:
         st.write(f"No parameters found for {selected_model}")
 
-# cols = st.columns(6)
-# with cols[2]:
-# Load button to load the model to Streamlit's session state
-if st.button("Load Model"):
-    if selected_model:
-        model_path = os.path.join(models_dir, selected_model + ".pth")
+cols = st.columns(2)
+with cols[0]:
+    # Load button to load the model to Streamlit's session state
+    if st.button("Load Model"):
+        if selected_model:
+            model_path = os.path.join(models_dir, selected_model + ".pth")
 
-        st.session_state["model_name"] = selected_model
-        with st.spinner("Loading model..."):
-            st.session_state["model"] = SNN.load(model_path)
-            st.session_state["model_params"] = model_params[selected_model]
-        st.success(f"Model {selected_model} loaded successfully.")
-    else:
-        st.error("Please select a model to load.")
-# with cols[3]:
-# Delete button to delete the selected model
-if st.button("Delete Model", type="primary"):
-    if selected_model:
-        os.remove(os.path.join(models_dir, selected_model + ".pth"))
-        del model_params[selected_model]
-        save_params(models_parameters_file, model_params)
-        model_files.remove(selected_model)
-        training_runs = load_params(training_runs_file)
-        if selected_model in training_runs:
-            del training_runs[selected_model]
-            save_params(training_runs_file, training_runs)
-        st.success(f"Model {selected_model} deleted successfully.")
-    else:
-        st.error("Please select a model to delete.")
+            st.session_state["model_name"] = selected_model
+            with st.spinner("Loading model..."):
+                st.session_state["model"] = SNN.load(model_path)
+                st.session_state["model_params"] = model_params[selected_model]
+            st.success(f"Model {selected_model} loaded successfully.")
+        else:
+            st.error("Please select a model to load.")
+with cols[1]:
+    # Delete button to delete the selected model
+    if st.button("Delete Model", type="primary"):
+        if selected_model:
+            model_files.remove(selected_model)
+            os.remove(os.path.join(models_dir, selected_model + ".pth"))
+            if selected_model in model_params:
+                del model_params[selected_model]
+                save_params(models_parameters_file, model_params)
+            training_runs = load_params(training_runs_file)
+            if selected_model in training_runs:
+                del training_runs[selected_model]
+                save_params(training_runs_file, training_runs)
+            st.success(f"Model {selected_model} deleted successfully.")
+        else:
+            st.error("Please select a model to delete.")
