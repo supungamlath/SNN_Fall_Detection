@@ -1,4 +1,7 @@
+import os
 import streamlit as st
+
+os.environ["root_folder"] = "/content/drive/MyDrive/Colab Notebooks/fall-detection"
 
 st.set_page_config(
     page_title="Fall Detection SNN",
