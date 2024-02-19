@@ -54,9 +54,8 @@ with st.expander("Create New Model"):
             batch_size=batch_size,
             max_time=max_time,
             nb_steps=nb_steps,
-            device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         )
-        torch.save(model, os.path.join(models_dir, f"{model_name}.pth"))
+        model.save(os.path.join(models_dir, f"{model_name}.pth"))
         save_params(models_parameters_file, model_params)
         model_files.append(model_name)
         st.success(f"Model {model_name} saved successfully.")
@@ -87,7 +86,7 @@ if st.button("Load Model"):
 
         st.session_state["model_name"] = selected_model
         with st.spinner("Loading model..."):
-            st.session_state["model"] = torch.load(model_path)
+            st.session_state["model"] = SNN.load(model_path)
             st.session_state["model_params"] = model_params[selected_model]
         st.success(f"Model {selected_model} loaded successfully.")
     else:

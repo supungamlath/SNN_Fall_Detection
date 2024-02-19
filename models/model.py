@@ -50,14 +50,14 @@ class SNN(nn.Module):
         batch_size,
         max_time,
         nb_steps,
-        device,
         dtype=torch.float,
         time_step=1e-2,
         tau_mem=10e-2,
         tau_syn=5e-2,
     ):
         super(SNN, self).__init__()
-        self.device = device
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print("Initializing SNN Model using device:", self.device)
         self.dtype = dtype
 
         self.nb_inputs = nb_inputs
@@ -158,3 +158,12 @@ class SNN(nn.Module):
         out_rec = torch.stack(out_rec, dim=1)
         other_recs = [mem_rec, spk_rec]
         return out_rec, other_recs
+
+    def save(self, path):
+        torch.save(self, path)
+
+    @staticmethod
+    def load(path):
+        return torch.load(path).to(
+            torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        )

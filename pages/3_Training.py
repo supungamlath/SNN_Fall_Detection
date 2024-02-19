@@ -135,9 +135,7 @@ if model_name:
             save_params(training_runs_file, training_params)
 
         with st.spinner("Saving the model..."):
-            torch.save(
-                model, f"{os.environ['root_folder']}/models/saved/{model_name}.pth"
-            )
+            model.save(f"{os.environ['root_folder']}/models/saved/{model_name}.pth")
 
         col1, col2 = st.columns(2)
         with col1:
