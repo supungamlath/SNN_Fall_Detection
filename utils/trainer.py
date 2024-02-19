@@ -6,16 +6,22 @@ from utils.visualization import plot_voltage_traces
 
 
 class Trainer:
-    def __init__(self, model, graph_renderer=None):
+    def __init__(self, model):
         self.model = model
-        self.graph_renderer = graph_renderer
         self.device = model.device
         self.batch_size = model.batch_size
         self.nb_steps = model.nb_steps
         self.nb_inputs = model.nb_inputs
         self.max_time = model.max_time
 
-    def train(self, dataloader, nb_epochs=10, lr=1e-3):
+    def train(
+        self,
+        dataloader,
+        nb_epochs=10,
+        lr=1e-3,
+        evaluate_loader=None,
+        callback_fn=None,
+    ):
         params = [self.model.w1, self.model.w2, self.model.v1]
         optimizer = torch.optim.Adamax(params, lr=lr, betas=(0.9, 0.999))
 
@@ -24,10 +30,16 @@ class Trainer:
 
         loss_hist = []
         train_accuracy_hist = []
+        test_accuracy_hist = []
 
         for e in range(nb_epochs):
             local_loss = []
             local_accuracy = []
+            print(f"Epoch: {e + 1}")
+            if evaluate_loader is not None:
+                test_accuracy = self.compute_accuracy(evaluate_loader)
+                test_accuracy_hist.append(test_accuracy)
+                print(f"Test accuracy = {test_accuracy:.4f}")
             for x_local, y_local in dataloader:
                 output, recs = self.model.forward(x_local.to_dense())
                 _, spks = recs
@@ -61,11 +73,14 @@ class Trainer:
             loss_hist.append(mean_loss)
             mean_accuracy = np.mean(local_accuracy)
             train_accuracy_hist.append(mean_accuracy)
-            # live_plot(loss_hist, title="Loss History", renderer=self.graph_renderer)
-            print(
-                f"Epoch {e + 1}: Loss = {mean_loss:.4f} \t Training accuracy = {mean_accuracy:.4f}"
-            )
-        return loss_hist, train_accuracy_hist
+            print(f"Train accuracy = {mean_accuracy:.4f}")
+            print(f"Loss = {mean_loss:.4f}\n")
+            if evaluate_loader is not None:
+                callback_fn(loss_hist, train_accuracy_hist, test_accuracy_hist)
+            else:
+                callback_fn(loss_hist, train_accuracy_hist)
+
+        return loss_hist, train_accuracy_hist, test_accuracy_hist
 
     def compute_accuracy(self, dataloader):
         """Computes classification accuracy on supplied data in batches."""
