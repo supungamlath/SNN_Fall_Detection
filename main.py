@@ -1,5 +1,4 @@
 import os
-import torch
 from utils.SpikingDataset import SpikingDataset
 from utils.SpikingDataLoader import SpikingDataLoader
 
@@ -7,10 +6,10 @@ from models.model import SNN
 
 from utils.Trainer import Trainer
 
-os.environ["root_folder"] = "."
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
+if os.name == "nt":
+    os.environ["root_folder"] = "E:/Projects/PythonProjects/SNN"
+else:
+    os.environ["root_folder"] = "/content/drive/MyDrive/Colab Notebooks/fall-detection"
 
 dataset = SpikingDataset(
     root_dir=f"{os.environ['root_folder']}/data/urfd-spiking-dataset-240",
@@ -28,7 +27,6 @@ model = SNN(
     batch_size=7,
     max_time=dataset.max_time,
     nb_steps=dataset.nb_steps,
-    device=device,
 )
 
 # Creating DataLoader instances
@@ -36,7 +34,7 @@ train_loader = SpikingDataLoader(train_dataset, batch_size=7, shuffle=True)
 test_loader = SpikingDataLoader(test_dataset, batch_size=7, shuffle=False)
 
 # Load the model
-model = torch.load(f"{os.environ['root_folder']}/models/saved/model_v5.pth").to(device)
+model = SNN.load(f"{os.environ['root_folder']}/models/saved/model_v5.pth")
 # model.eval()
 
 # Train the model
@@ -44,7 +42,7 @@ trainer = Trainer(model=model)
 trainer.train(train_loader, nb_epochs=5, lr=2e-4)
 
 # Save the model
-torch.save(model, f"{os.environ['root_folder']}/models/saved/model_v7.pth")
+model.save(f"{os.environ['root_folder']}/models/saved/model_v7.pth")
 
 # Evaluate the model
 print("Training accuracy:", trainer.compute_accuracy(train_loader))
