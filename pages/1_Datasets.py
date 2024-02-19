@@ -1,7 +1,6 @@
 import streamlit as st
 from utils.SpikingDataset import SpikingDataset
-
-from pages.helpers import datasets_dirs, display_video
+from utils.helpers import datasets_dirs, display_video
 
 st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wide")
 
@@ -15,6 +14,7 @@ selected_dataset_name = st.selectbox(
 # Display videos as tiles with file names beneath them
 if selected_dataset_name:
     dataset = SpikingDataset(root_dir=datasets_dirs[selected_dataset_name])
+    st.write(f"Number of videos: {len(dataset)}")
     # Create columns for displaying videos in a grid
     cols = st.columns(3)
     for index in range(len(dataset)):

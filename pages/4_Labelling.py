@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.SpikingDataset import SpikingDataset
-from pages.helpers import datasets_dirs, display_video, draw_row_traces
+from utils.helpers import datasets_dirs, display_video, draw_row_traces
 
 st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wide")
 
@@ -21,7 +21,7 @@ if model_name is not None:
 
     with st.spinner("Loading dataset..."):
         dataset = SpikingDataset(
-            root_dir=[datasets_dirs[selected_dataset]],
+            root_dir=datasets_dirs[selected_dataset],
             max_time=model_params["max_time"],
             nb_steps=model_params["nb_steps"],
         )
@@ -38,23 +38,21 @@ if model_name is not None:
                 with cols[i]:
                     index = row_counter * dataloader.batch_size + i
                     display_video(dataset.get_video_path(index))
-                    caption = f"Label: {dataset.get_label(index)}"
-                    st.caption(caption)
-
-                    st.checkbox("Label Fall?", key=f"checkbox-{index}")
+                    is_fall = True if dataset.get_label(index) == 1 else False
+                    st.checkbox("Is Fall?", key=f"checkbox-{index}", value=is_fall)
 
             draw_row_traces(x_local, model, model_params)
             st.divider()
             row_counter += 1
 
-        submitted = st.form_submit_button("Save Labels")
+        submitted = st.form_submit_button("Save Labels", type="primary")
         if submitted:
             for i in range(len(dataset)):
-                correct_label = st.session_state[f"checkbox-{i}"]
+                correct_label = 1 if st.session_state[f"checkbox-{i}"] else 0
                 dataset.edit_label(i, correct_label)
 
             dataset.save_labels()
-            st.write("Saved labels successfully.")
+            st.write("Labels saved successfully.")
 
 else:
     st.write("Please select a model first.")

@@ -1,9 +1,9 @@
-import json
 import os
 import streamlit as st
 import torch
 
 from models.model import SNN
+from utils.helpers import load_params, save_params
 
 st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wide")
 
@@ -12,42 +12,11 @@ st.write("# Models")
 # Define the directory where the models and their parameters are stored
 models_dir = "./models/saved"
 models_parameters_file = os.path.join(models_dir, "models.json")
-
-
-# Function to save model parameters to JSON
-def save_model_params(params):
-    with open(models_parameters_file, "w") as f:
-        json.dump(params, f, indent=4)
-
-
-# Function to load model parameters from JSON
-def load_model_params():
-    if os.path.exists(models_parameters_file):
-        with open(models_parameters_file, "r") as f:
-            params = json.load(f)
-        return params
-    else:
-        return {}
-
+training_runs_file = os.path.join(models_dir, "training_runs.json")
 
 # Load existing model parameters
-model_params = load_model_params()
-
-# Dropdown to select saved models
-model_files = [f for f in os.listdir(models_dir) if f.endswith(".pth")]
-selected_model_file = st.selectbox(
-    "Select a saved model:", model_files, index=len(model_files) - 1
-)
-
-# Display model parameters before loading
-if selected_model_file:
-    model_name = selected_model_file[:-4]  # Remove the .pth extension
-    if model_name in model_params:
-        st.write(f"Model Parameters for {model_name}")
-        for k, v in model_params[model_name].items():
-            st.write(f"`{k}: {v}`")
-    else:
-        st.write("No parameters found for the selected model.")
+model_params = load_params(models_parameters_file)
+model_files = [f[:-4] for f in os.listdir(models_dir) if f.endswith(".pth")]
 
 with st.expander("Create New Model"):
     video_presets = {
@@ -69,7 +38,7 @@ with st.expander("Create New Model"):
     )
 
     # Button to create a new model
-    if st.button("Create New Model"):
+    if st.button("Save Model"):
         model_params[model_name] = {
             "nb_inputs": nb_inputs,
             "nb_hidden": nb_hidden,
@@ -88,21 +57,53 @@ with st.expander("Create New Model"):
             device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         )
         torch.save(model, os.path.join(models_dir, f"{model_name}.pth"))
-        save_model_params(model_params)
-        selected_model_file = f"{model_name}.pth"
-        st.success(f"Model {model_name} created successfully.")
+        save_params(models_parameters_file, model_params)
+        model_files.append(model_name)
+        st.success(f"Model {model_name} saved successfully.")
 
+# Dropdown to select saved models
+selected_model = st.selectbox(
+    "Select a saved model:", model_files, index=len(model_files) - 1
+)
 
+# Display model parameters before loading
+if selected_model:
+    if selected_model in model_params:
+        st.write(f"Model Parameters for {selected_model}")
+        params_string = "\n"
+        for k, v in model_params[selected_model].items():
+            params_string += f"{k}: {v} \n"
+        params_string = f"```{params_string}```"
+        st.markdown(params_string)
+    else:
+        st.write(f"No parameters found for {selected_model}")
+
+# cols = st.columns(6)
+# with cols[2]:
 # Load button to load the model to Streamlit's session state
 if st.button("Load Model"):
-    if selected_model_file:
-        model_path = os.path.join(models_dir, selected_model_file)
-        model_name = selected_model_file[:-4]
+    if selected_model:
+        model_path = os.path.join(models_dir, selected_model + ".pth")
 
-        st.session_state["model_name"] = model_name
+        st.session_state["model_name"] = selected_model
         with st.spinner("Loading model..."):
             st.session_state["model"] = torch.load(model_path)
-            st.session_state["model_params"] = model_params[model_name]
-        st.success(f"Model {model_name} loaded successfully.")
+            st.session_state["model_params"] = model_params[selected_model]
+        st.success(f"Model {selected_model} loaded successfully.")
     else:
         st.error("Please select a model to load.")
+# with cols[3]:
+# Delete button to delete the selected model
+if st.button("Delete Model", type="primary"):
+    if selected_model:
+        os.remove(os.path.join(models_dir, selected_model + ".pth"))
+        del model_params[selected_model]
+        save_params(models_parameters_file, model_params)
+        model_files.remove(selected_model)
+        training_runs = load_params(training_runs_file)
+        if selected_model in training_runs:
+            del training_runs[selected_model]
+            save_params(training_runs_file, training_runs)
+        st.success(f"Model {selected_model} deleted successfully.")
+    else:
+        st.error("Please select a model to delete.")
