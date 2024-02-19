@@ -25,11 +25,18 @@ class SpikingDataset(Dataset):
         if read_csv:
             # Load the CSV file into a DataFrame
             labels_file = os.path.join(root_dir, "labels.csv")
-            df = pd.read_csv(labels_file)
+            if os.path.exists(labels_file):
 
-            # Convert the columns to lists
-            self.folder_names = df["folder_name"].tolist()
-            self.labels = df["label"].tolist()
+                df = pd.read_csv(labels_file)
+                self.folder_names = df["folder_name"].tolist()
+                self.labels = df["label"].tolist()
+            else:
+                self.folder_names = [
+                    folder
+                    for folder in os.listdir(root_dir)
+                    if os.path.isdir(os.path.join(root_dir, folder))
+                ]
+                self.labels = [1] * len(self.folder_names)
 
     def __len__(self):
         return len(self.folder_names)
