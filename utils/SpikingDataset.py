@@ -43,19 +43,23 @@ class SpikingDataset(Dataset):
 
     def __getitem__(self, idx):
         events_file = self.folder_names[idx] + ".h5"
-        spike_data = h5py.File(
-            os.path.join(self.root_dir, self.folder_names[idx], events_file), "r"
-        )
-        spike_tuples = np.array(spike_data["events"])
-        # Remove events that occur after max_timestamp
-        spike_tuples = spike_tuples[spike_tuples[:, 0] < self.max_timestamp]
-        sample = {
-            "timestamp": spike_tuples[:, 0] / 1e6,
-            "x": spike_tuples[:, 1],
-            "y": spike_tuples[:, 2],
-            "polarity": spike_tuples[:, 3],
-        }
-        return sample, self.labels[idx]
+        try:
+            spike_data = h5py.File(
+                os.path.join(self.root_dir, self.folder_names[idx], events_file), "r"
+            )
+            spike_tuples = np.array(spike_data["events"])
+            # Remove events that occur after max_timestamp
+            spike_tuples = spike_tuples[spike_tuples[:, 0] < self.max_timestamp]
+            sample = {
+                "timestamp": spike_tuples[:, 0] / 1e6,
+                "x": spike_tuples[:, 1],
+                "y": spike_tuples[:, 2],
+                "polarity": spike_tuples[:, 3],
+            }
+            return sample, self.labels[idx]
+        except Exception as e:
+            print(f"Error reading {events_file}: {e}")
+            return None, None
 
     def edit_label(self, idx, label):
         self.labels[idx] = label
