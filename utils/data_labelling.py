@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def label_URFD_dataset():
-    dataset_folder = "./data/urfd-spiking-dataset-240"
+    dataset_folder = f"{os.environ['root_folder']}/data/urfd-spiking-dataset-240"
     folder_names = [
         folder
         for folder in os.listdir(dataset_folder)
@@ -15,7 +15,7 @@ def label_URFD_dataset():
 
 
 def label_HAR_UP_dataset():
-    dataset_folder = "./data/har-up-spiking-dataset-240"
+    dataset_folder = f"{os.environ['root_folder']}/data/har-up-spiking-dataset-240"
     folder_names = [
         folder
         for folder in os.listdir(dataset_folder)

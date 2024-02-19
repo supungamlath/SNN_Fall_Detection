@@ -75,10 +75,11 @@ class Trainer:
             train_accuracy_hist.append(mean_accuracy)
             print(f"Train accuracy = {mean_accuracy:.4f}")
             print(f"Loss = {mean_loss:.4f}\n")
-            if evaluate_loader is not None:
-                callback_fn(loss_hist, train_accuracy_hist, test_accuracy_hist)
-            else:
-                callback_fn(loss_hist, train_accuracy_hist)
+            if callback_fn is not None:
+                if evaluate_loader is not None:
+                    callback_fn(loss_hist, train_accuracy_hist, test_accuracy_hist)
+                else:
+                    callback_fn(loss_hist, train_accuracy_hist)
 
         return loss_hist, train_accuracy_hist, test_accuracy_hist
 

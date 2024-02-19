@@ -10,7 +10,7 @@ st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wi
 st.write("# Models")
 
 # Define the directory where the models and their parameters are stored
-models_dir = "./models/saved"
+models_dir = f"{os.environ['root_folder']}/models/saved"
 models_parameters_file = os.path.join(models_dir, "models.json")
 training_runs_file = os.path.join(models_dir, "training_runs.json")
 

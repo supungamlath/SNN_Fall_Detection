@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import streamlit as st
 import torch
 from utils.SpikingDataLoader import SpikingDataLoader
@@ -12,7 +13,7 @@ st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wi
 st.write("# Training")
 
 # Define the directory where the previous training runs are stored
-training_runs_file = "./models/saved/training_runs.json"
+training_runs_file = f"{os.environ['root_folder']}/models/saved/training_runs.json"
 
 # Load previous training runs
 training_params = load_params(training_runs_file)
@@ -134,7 +135,9 @@ if model_name:
             save_params(training_runs_file, training_params)
 
         with st.spinner("Saving the model..."):
-            torch.save(model, f"./models/saved/{model_name}.pth")
+            torch.save(
+                model, f"{os.environ['root_folder']}/models/saved/{model_name}.pth"
+            )
 
         col1, col2 = st.columns(2)
         with col1:
