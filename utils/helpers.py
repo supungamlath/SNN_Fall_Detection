@@ -1,4 +1,5 @@
 # Define the path to the video datasets
+import json
 import os
 import shlex
 import subprocess
@@ -47,3 +48,30 @@ def draw_row_traces(x_local, model, model_params):
         dim=(1, model_params["batch_size"]),
         renderer=st.pyplot,
     )
+
+
+def print_loss_accuracy(loss_hist, train_accuracy_hist, test_accuracy_hist=None):
+    st.write(f"Epoch: {len(train_accuracy_hist)}")
+    markdown_str = (
+        f"\nLoss: {loss_hist[-1]} \nTrain Set Accuracy: {train_accuracy_hist[-1]}\n"
+    )
+    if test_accuracy_hist:
+        markdown_str += f"Test Set Accuracy: {test_accuracy_hist[-1]}\n"
+    markdown_str = f"```{markdown_str}```"
+    st.markdown(markdown_str)
+
+
+# Function to save parameters to file
+def save_params(file_dir, params):
+    with open(file_dir, "w") as f:
+        json.dump(params, f, indent=4)
+
+
+# Function to load parameters from file
+def load_params(file_dir):
+    if os.path.exists(file_dir):
+        with open(file_dir, "r") as f:
+            params = json.load(f)
+        return params
+    else:
+        return {}
