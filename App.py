@@ -4,7 +4,7 @@ import streamlit as st
 if os.name == "nt":
     os.environ["root_folder"] = "E:/Projects/PythonProjects/SNN"
 else:
-    os.environ["root_folder"] = "/content/drive/MyDrive/Colab Notebooks/fall-detection"
+    os.environ["root_folder"] = "/content/SNN_Fall_Detection"
 
 st.set_page_config(
     page_title="Fall Detection SNN",
