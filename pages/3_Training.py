@@ -125,7 +125,7 @@ if model_name:
                 train_loader,
                 nb_epochs=nb_epochs,
                 lr=learning_rate,
-                evaluate_loader=test_loader if evaluate_on_epoch else None,
+                evaluate_dataloader=test_loader if evaluate_on_epoch else None,
                 callback_fn=print_loss_accuracy,
             )
             training_params[model_name][-1]["loss_hist"] = histories[0]
