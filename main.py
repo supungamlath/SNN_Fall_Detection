@@ -1,8 +1,8 @@
 import os
+
+from models.SpikingNN import SpikingNN
 from utils.SpikingDataset import SpikingDataset
 from utils.SpikingDataLoader import SpikingDataLoader
-
-from models.model import SNN
 
 from utils.Trainer import Trainer
 
@@ -18,14 +18,10 @@ dataset = SpikingDataset(
 )
 
 # Splitting the dataset
-train_dataset, test_dataset = dataset.random_split(test_size=0.25, shuffle=True)
+train_dataset, test_dataset = dataset.random_split(test_size=0.2, shuffle=True)
 
-model = SNN(
-    nb_inputs=dataset.nb_pixels,
-    nb_hidden=2000,
-    nb_outputs=2,
-    batch_size=7,
-    max_time=dataset.max_time,
+model = SpikingNN(
+    layer_sizes=[dataset.nb_pixels, 1000, 50, 2],
     nb_steps=dataset.nb_steps,
 )
 
@@ -34,7 +30,7 @@ train_loader = SpikingDataLoader(train_dataset, batch_size=7, shuffle=True)
 test_loader = SpikingDataLoader(test_dataset, batch_size=7, shuffle=False)
 
 # Load the model
-model = SNN.load(f"{os.environ['root_folder']}/models/saved/model_v5.pth")
+# model = SpikingNN.load(f"{os.environ['root_folder']}/models/saved/model_v5.pth")
 # model.eval()
 
 # Train the model
@@ -42,7 +38,7 @@ trainer = Trainer(model=model)
 trainer.train(train_loader, nb_epochs=5, lr=2e-4)
 
 # Save the model
-model.save(f"{os.environ['root_folder']}/models/saved/model_v7.pth")
+model.save(f"{os.environ['root_folder']}/models/saved/model_v4.pth")
 
 # Evaluate the model
 print("Training accuracy:", trainer.compute_accuracy(train_loader))
