@@ -48,7 +48,6 @@ class SNN(nn.Module):
         nb_hidden,
         nb_outputs,
         batch_size,
-        max_time,
         nb_steps,
         dtype=torch.float,
         time_step=1e-2,
@@ -64,7 +63,6 @@ class SNN(nn.Module):
         self.nb_hidden = nb_hidden
         self.nb_outputs = nb_outputs
         self.batch_size = batch_size
-        self.max_time = max_time
         self.nb_steps = nb_steps
 
         self.time_step = time_step
