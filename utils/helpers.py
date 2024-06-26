@@ -3,6 +3,7 @@ import json
 import os
 import shlex
 import subprocess
+import pandas as pd
 import streamlit as st
 import torch
 
@@ -75,3 +76,35 @@ def load_params(file_dir):
         return params
     else:
         return {}
+
+
+# Convert training results JSON data to a Pandas DataFrame
+def training_json_to_dataframe(data):
+    records = []
+    for model_name, experiments in data.items():
+        for experiment in experiments:
+            record = {
+                "model_name": model_name,
+                "datetime": experiment.get("datetime"),
+                "dataset": experiment.get("dataset"),
+                "train_test_ratio": experiment.get("train_test_ratio"),
+                "nb_epochs": experiment.get("nb_epochs"),
+                "learning_rate": experiment.get("learning_rate"),
+                "loss_hist": experiment.get("loss_hist"),
+                "train_accuracy_hist": experiment.get("train_accuracy_hist"),
+                "test_accuracy_hist": experiment.get("test_accuracy_hist"),
+            }
+            records.append(record)
+    df = pd.DataFrame(records)
+    return df
+
+
+# Convert models information JSON data to a Pandas DataFrame
+def models_info_json_to_dataframe(data):
+    records = []
+    for model_name, info in data.items():
+        record = {"model_name": model_name}
+        record.update(info)
+        records.append(record)
+    df = pd.DataFrame(records)
+    return df
