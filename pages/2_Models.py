@@ -29,8 +29,12 @@ with st.expander("Create New Model"):
     nb_hidden = st.number_input(
         "Neurons in Hidden Layer", min_value=1000, max_value=10000, value=2000
     )
-    tau_mem = st.number_input("Membrane Time Constant (miliseconds)", min_value=50, max_value=500, value=100)
-    tau_syn = st.number_input("Synaptic Time Constant (miliseconds)", min_value=50, max_value=500, value=50)
+    tau_mem = st.number_input(
+        "Membrane Time Constant (miliseconds)", min_value=50, max_value=500, value=100
+    )
+    tau_syn = st.number_input(
+        "Synaptic Time Constant (miliseconds)", min_value=50, max_value=500, value=50
+    )
     batch_size = st.number_input("Batch Size", min_value=1, max_value=32, value=7)
     nb_steps = st.number_input(
         "Number of Time steps", min_value=500, max_value=5000, value=1000
