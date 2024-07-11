@@ -128,9 +128,8 @@ if model_name:
                 evaluate_dataloader=test_loader if evaluate_on_epoch else None,
                 callback_fn=print_loss_accuracy,
             )
-            training_params[model_name][-1]["loss_hist"] = histories[0]
-            training_params[model_name][-1]["train_accuracy_hist"] = histories[1]
-            training_params[model_name][-1]["test_accuracy_hist"] = histories[2]
+            training_params[model_name][-1]["train_metrics_hist"] = histories[0]
+            training_params[model_name][-1]["test_metrics_hist"] = histories[1]
             save_params(training_runs_file, training_params)
 
         with st.spinner("Saving the model..."):

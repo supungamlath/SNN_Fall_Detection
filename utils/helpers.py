@@ -51,13 +51,13 @@ def draw_row_traces(x_local, model, model_params):
     )
 
 
-def print_loss_accuracy(loss_hist, train_accuracy_hist, test_accuracy_hist=None):
-    st.write(f"Epoch: {len(train_accuracy_hist)}")
-    markdown_str = (
-        f"\nLoss: {loss_hist[-1]} \nTrain Set Accuracy: {train_accuracy_hist[-1]}\n"
-    )
-    if test_accuracy_hist:
-        markdown_str += f"Test Set Accuracy: {test_accuracy_hist[-1]}\n"
+def print_loss_accuracy(train_metrics_hist, test_metrics_hist=None):
+    st.write(f"Epoch: {len(train_metrics_hist)}")
+    train_metrics = train_metrics_hist[-1]
+    markdown_str = f"\nTrain Loss: {train_metrics['loss']} \nTrain Set Accuracy: {train_metrics['accuracy']}\n"
+    if test_metrics_hist:
+        test_metrics = test_metrics_hist[-1]
+        markdown_str += f"Test Set Accuracy: {test_metrics['accuracy']}\n"
     markdown_str = f"```{markdown_str}```"
     st.markdown(markdown_str)
 
@@ -90,10 +90,39 @@ def training_json_to_dataframe(data):
                 "train_test_ratio": experiment.get("train_test_ratio"),
                 "nb_epochs": experiment.get("nb_epochs"),
                 "learning_rate": experiment.get("learning_rate"),
-                "loss_hist": experiment.get("loss_hist"),
+                "train_loss_hist": experiment.get("loss_hist"),
                 "train_accuracy_hist": experiment.get("train_accuracy_hist"),
                 "test_accuracy_hist": experiment.get("test_accuracy_hist"),
             }
+            if "train_metrics_hist" in experiment:
+                record["train_accuracy_hist"] = [
+                    metrics["accuracy"] for metrics in experiment["train_metrics_hist"]
+                ]
+                record["train_precision_hist"] = [
+                    metrics["precision"] for metrics in experiment["train_metrics_hist"]
+                ]
+                record["train_recall_hist"] = [
+                    metrics["recall"] for metrics in experiment["train_metrics_hist"]
+                ]
+                record["train_f1_hist"] = [
+                    metrics["f1_score"] for metrics in experiment["train_metrics_hist"]
+                ]
+                record["train_loss_hist"] = [
+                    metrics["loss"] for metrics in experiment["train_metrics_hist"]
+                ]
+            if "test_metrics_hist" in experiment:
+                record["test_accuracy_hist"] = [
+                    metrics["accuracy"] for metrics in experiment["test_metrics_hist"]
+                ]
+                record["test_precision_hist"] = [
+                    metrics["precision"] for metrics in experiment["test_metrics_hist"]
+                ]
+                record["test_recall_hist"] = [
+                    metrics["recall"] for metrics in experiment["test_metrics_hist"]
+                ]
+                record["test_f1_hist"] = [
+                    metrics["f1_score"] for metrics in experiment["test_metrics_hist"]
+                ]
             records.append(record)
     df = pd.DataFrame(records)
     return df

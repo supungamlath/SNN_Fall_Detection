@@ -40,9 +40,5 @@ trainer.train(train_loader, nb_epochs=5, lr=2e-4)
 # Save the model
 model.save(f"{os.environ['root_folder']}/models/saved/model_v4.pth")
 
-# Evaluate the model
-print("Training accuracy:", trainer.compute_accuracy(train_loader))
-print("Test accuracy:", trainer.compute_accuracy(test_loader))
-
 # Visualize the output spikes
 trainer.visualize_output(test_loader, 1)

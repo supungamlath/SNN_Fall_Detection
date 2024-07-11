@@ -2,7 +2,11 @@ import os
 import pandas as pd
 import streamlit as st
 import plotly.express as px
-from utils.helpers import load_params, training_json_to_dataframe, models_info_json_to_dataframe
+from utils.helpers import (
+    load_params,
+    training_json_to_dataframe,
+    models_info_json_to_dataframe,
+)
 
 
 # Define the directory where the models and their parameters are stored
@@ -35,34 +39,57 @@ if model_names:
 if datasets:
     df = df[df["dataset"].isin(datasets)]
 
-# Plot Loss History
-st.header("Loss History")
-fig = px.line()
-for model_name in df["model_name"].unique():
-    model_data = df[df["model_name"] == model_name]
-    for idx, row in model_data.iterrows():
-        if row["loss_hist"]:
-            fig.add_scatter(x=list(range(1, len(row["loss_hist"]) + 1)), y=row["loss_hist"], mode='lines', name=f"{model_name} (Run at {row['datetime']})")
-st.plotly_chart(fig)
+# Plot selection options
+plot_loss_history = st.checkbox("Plot Train Loss History")
+plot_train_accuracy_history = st.checkbox("Plot Train Accuracy History")
+plot_test_accuracy_history = st.checkbox("Plot Test Accuracy History")
+
+# Plot Train Loss History
+if plot_loss_history:
+    st.header("Train Loss History")
+    fig = px.line()
+    for model_name in df["model_name"].unique():
+        model_data = df[df["model_name"] == model_name]
+        for idx, row in model_data.iterrows():
+            if row["train_loss_hist"]:
+                fig.add_scatter(
+                    x=list(range(1, len(row["train_loss_hist"]) + 1)),
+                    y=row["train_loss_hist"],
+                    mode="lines",
+                    name=f"{model_name} (Run at {row['datetime']})",
+                )
+    st.plotly_chart(fig)
 
 # Plot Train Accuracy History
-st.header("Train Accuracy History")
-fig = px.line()
-for model_name in df["model_name"].unique():
-    model_data = df[df["model_name"] == model_name]
-    for idx, row in model_data.iterrows():
-        if row["train_accuracy_hist"]:
-            fig.add_scatter(x=list(range(1, len(row["train_accuracy_hist"]) + 1)), y=row["train_accuracy_hist"], mode='lines', name=f"{model_name} (Run at {row['datetime']})")
-st.plotly_chart(fig)
+if plot_train_accuracy_history:
+    st.header("Train Accuracy History")
+    fig = px.line()
+    for model_name in df["model_name"].unique():
+        model_data = df[df["model_name"] == model_name]
+        for idx, row in model_data.iterrows():
+            if row["train_accuracy_hist"]:
+                fig.add_scatter(
+                    x=list(range(1, len(row["train_accuracy_hist"]) + 1)),
+                    y=row["train_accuracy_hist"],
+                    mode="lines",
+                    name=f"{model_name} (Run at {row['datetime']})",
+                )
+    st.plotly_chart(fig)
 
 # Plot Test Accuracy History
-st.header("Test Accuracy History")
-fig = px.line()
-for model_name in df["model_name"].unique():
-    model_data = df[df["model_name"] == model_name]
-    for idx, row in model_data.iterrows():
-        if row["test_accuracy_hist"]:
-            fig.add_scatter(x=list(range(1, len(row["test_accuracy_hist"]) + 1)), y=row["test_accuracy_hist"], mode='lines', name=f"{model_name} (Run at {row['datetime']})")
-st.plotly_chart(fig)
+if plot_test_accuracy_history:
+    st.header("Test Accuracy History")
+    fig = px.line()
+    for model_name in df["model_name"].unique():
+        model_data = df[df["model_name"] == model_name]
+        for idx, row in model_data.iterrows():
+            if row["test_accuracy_hist"]:
+                fig.add_scatter(
+                    x=list(range(1, len(row["test_accuracy_hist"]) + 1)),
+                    y=row["test_accuracy_hist"],
+                    mode="lines",
+                    name=f"{model_name} (Run at {row['datetime']})",
+                )
+    st.plotly_chart(fig)
 
 st.write("Select rows and metrics to compare across different models.")

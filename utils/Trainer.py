@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 from utils.visualization import plot_voltage_traces
 
@@ -26,29 +27,49 @@ class Trainer:
         loss_fn = nn.NLLLoss()
 
         loss_hist = []
-        train_accuracy_hist = []
-        test_accuracy_hist = []
+        train_metrics_hist = []
+        test_metrics_hist = []
 
         for e in range(nb_epochs):
             local_loss = []
-            local_accuracy = []
+            train_y_true = []
+            train_y_pred = []
             print(f"Epoch: {e + 1}")
+
             if evaluate_dataloader is not None:
-                test_accuracy = self.compute_accuracy(evaluate_dataloader)
-                test_accuracy_hist.append(test_accuracy)
-                print(f"Test accuracy = {test_accuracy:.4f}")
+                test_y_true = []
+                test_y_pred = []
+                for x_local, y_local in evaluate_dataloader:
+                    output, _ = self.model.forward(x_local.to_dense())
+                    m, _ = torch.max(output, 1)  # max over time
+                    _, am = torch.max(m, 1)  # argmax over output units
+
+                    # Convert to numpy arrays
+                    y_true = y_local.detach().cpu().numpy()
+                    y_pred = am.detach().cpu().numpy()
+
+                    # Aggregate results
+                    test_y_true.extend(y_true)
+                    test_y_pred.extend(y_pred)
+
+                test_metrics = self.compute_metrics(test_y_pred, test_y_true)
+                test_metrics_hist.append(test_metrics)
+                print(f"Test metrics : {test_metrics}")
+
             for x_local, y_local in train_dataloader:
                 output, recs = self.model.forward(x_local.to_dense())
                 spk_recs, _ = recs
                 m, _ = torch.max(output, 1)
                 log_p_y = log_softmax_fn(m)
-
-                # Calculate the test accuracy
                 _, am = torch.max(m, 1)  # argmax over output units
-                tmp = np.mean(
-                    (y_local == am).detach().cpu().numpy()
-                )  # compare to labels
-                local_accuracy.append(tmp)
+
+                # Arrays for calculating train metrics
+                y_true = y_local.detach().cpu().numpy()
+                y_pred = am.detach().cpu().numpy()
+
+                # Aggregate results
+                train_y_true.extend(y_true)
+                train_y_pred.extend(y_pred)
 
                 # Here we set up our regularizer loss
                 # The reg_alpha strength parameter here are merely a guess and there should be ample room for improvement by tuning these paramters.
@@ -71,28 +92,41 @@ class Trainer:
 
             mean_loss = np.mean(local_loss)
             loss_hist.append(mean_loss)
-            mean_accuracy = np.mean(local_accuracy)
-            train_accuracy_hist.append(mean_accuracy)
-            print(f"Train accuracy = {mean_accuracy:.4f}")
-            print(f"Loss = {mean_loss:.4f}\n")
+
+            train_metrics = self.compute_metrics(train_y_pred, train_y_true)
+            train_metrics["loss"] = mean_loss
+            train_metrics_hist.append(train_metrics)
+
+            print(f"Train metrics : {train_metrics}")
+
             if callback_fn is not None:
                 if evaluate_dataloader is not None:
-                    callback_fn(loss_hist, train_accuracy_hist, test_accuracy_hist)
+                    callback_fn(train_metrics_hist, test_metrics_hist)
                 else:
-                    callback_fn(loss_hist, train_accuracy_hist)
+                    callback_fn(train_metrics_hist)
 
-        return loss_hist, train_accuracy_hist, test_accuracy_hist
+        return train_metrics_hist, test_metrics_hist
 
-    def compute_accuracy(self, dataloader):
-        """Computes classification accuracy on supplied data in batches."""
-        accs = []
-        for x_local, y_local in dataloader:
-            output, _ = self.model.forward(x_local.to_dense())
-            m, _ = torch.max(output, 1)  # max over time
-            _, am = torch.max(m, 1)  # argmax over output units
-            tmp = np.mean((y_local == am).detach().cpu().numpy())  # compare to labels
-            accs.append(tmp)
-        return np.mean(accs)
+    def compute_metrics(self, all_y_pred, all_y_true):
+        """Computes classification accuracy, precision, recall, and F1 score on supplied data in batches."""
+        # Convert lists to numpy arrays
+        all_y_true = np.array(all_y_true)
+        all_y_pred = np.array(all_y_pred)
+
+        # Calculate overall metrics
+        accuracy = accuracy_score(all_y_true, all_y_pred)
+        precision = precision_score(
+            all_y_true, all_y_pred, average="binary", zero_division=0
+        )
+        recall = recall_score(all_y_true, all_y_pred, average="binary", zero_division=0)
+        f1 = f1_score(all_y_true, all_y_pred, average="binary", zero_division=0)
+
+        return {
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1_score": f1,
+        }
 
     def visualize_output(self, dataloader, nb_batches=1):
         batch_counter = 0
