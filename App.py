@@ -1,10 +1,12 @@
 import os
 import streamlit as st
+import json
 
-if os.name == "nt":
-    os.environ["root_folder"] = "E:/Projects/PythonProjects/SNN"
-else:
-    os.environ["root_folder"] = "/content/SNN_Fall_Detection"
+# Load the config file
+with open("config.json") as f:
+    config = json.load(f)
+
+os.environ["root_folder"] = config.get("root_folder")
 
 st.set_page_config(
     page_title="Fall Detection SNN",
