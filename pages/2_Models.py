@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 
+from models.SpikingNN import SpikingNN
 from models.model import SNN
 from utils.helpers import load_params, save_params
 
@@ -24,18 +25,39 @@ with st.expander("Create New Model"):
         "640x480": 640 * 480,
     }
     model_name = st.text_input("Model Name")
-    video_dims = st.selectbox("Video Dimensions", video_presets.keys(), index=0)
-    nb_inputs = video_presets[video_dims]
-    nb_hidden = st.number_input(
-        "Neurons in Hidden Layer", min_value=1000, max_value=10000, value=2000
+    snn_layers = []
+    video_dims = st.selectbox(
+        "Neurons in Input Layer (Video Dimensions)", video_presets.keys(), index=0
     )
+    nb_inputs = video_presets[video_dims]
+    snn_layers.append(nb_inputs)
+
+    num_hidden_layers = st.number_input(
+        "Number of Hidden Layers", min_value=1, max_value=10, value=1
+    )
+
+    for i in range(num_hidden_layers):
+        nb_hidden = st.number_input(
+            f"Neurons in Hidden Layer {i + 1}",
+            min_value=1000,
+            max_value=10000,
+            value=2000,
+            key=f"hidden_layer_{i}",
+        )
+        snn_layers.append(nb_hidden)
+
+    # Output layer
+    snn_layers.append(2)
+
     tau_mem = st.number_input(
         "Membrane Time Constant (miliseconds)", min_value=50, max_value=500, value=100
     )
     tau_syn = st.number_input(
         "Synaptic Time Constant (miliseconds)", min_value=50, max_value=500, value=50
     )
-    batch_size = st.number_input("Batch Size", min_value=1, max_value=32, value=7)
+    max_time = st.number_input(
+        "Max Time Period (s)", min_value=1, max_value=60, value=15
+    )
     nb_steps = st.number_input(
         "Number of Time steps", min_value=500, max_value=5000, value=1000
     )
@@ -46,21 +68,15 @@ with st.expander("Create New Model"):
     # Button to create a new model
     if st.button("Save Model"):
         model_params[model_name] = {
-            "nb_inputs": nb_inputs,
-            "nb_hidden": nb_hidden,
-            "nb_outputs": 2,
-            "batch_size": batch_size,
+            "snn_layers": snn_layers,
             "nb_steps": nb_steps,
             "time_step": time_step * 1e-3,
             "tau_mem": tau_mem * 1e-3,
             "tau_syn": tau_syn * 1e-3,
-            "max_time": 15,
+            "max_time": max_time,
         }
-        model = SNN(
-            nb_inputs=nb_inputs,
-            nb_hidden=nb_hidden,
-            nb_outputs=2,
-            batch_size=batch_size,
+        model = SpikingNN(
+            layer_sizes=snn_layers,
             nb_steps=nb_steps,
             time_step=time_step * 1e-3,
             tau_mem=tau_mem * 1e-3,
