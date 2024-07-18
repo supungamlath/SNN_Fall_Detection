@@ -13,9 +13,7 @@ st.write(f"### Selected Model: {model_name}")
 
 if model_name is not None:
     # Select a dataset from the list
-    selected_dataset = st.selectbox(
-        "Select an Event Dataset:", list(datasets_dirs.keys())
-    )
+    selected_dataset = st.selectbox("Select an Event Dataset:", list(datasets_dirs.keys()))
     model = st.session_state["model"]
     model_params = st.session_state["model_params"]
 
@@ -25,9 +23,7 @@ if model_name is not None:
             max_time=model_params["max_time"],
             nb_steps=model_params["nb_steps"],
         )
-        dataloader = SpikingDataLoader(
-            dataset, batch_size=model_params["batch_size"], shuffle=False
-        )
+        dataloader = SpikingDataLoader(dataset, batch_size=model_params["batch_size"], shuffle=False)
 
     with st.form("checkbox_form", clear_on_submit=False):
         # Create columns for displaying videos in a grid
@@ -39,7 +35,7 @@ if model_name is not None:
                     index = row_counter * dataloader.batch_size + i
                     display_video(dataset.get_video_path(index))
                     is_fall = True if dataset.get_label(index) == 1 else False
-                    st.checkbox("Is Fall?", key=f"checkbox-{index}", value=is_fall)
+                    st.checkbox("Is Fall?", key=f"labelling-checkbox-{index}", value=is_fall)
 
             draw_row_traces(x_local, model, model_params)
             st.divider()
@@ -48,7 +44,7 @@ if model_name is not None:
         submitted = st.form_submit_button("Save Labels", type="primary")
         if submitted:
             for i in range(len(dataset)):
-                correct_label = 1 if st.session_state[f"checkbox-{i}"] else 0
+                correct_label = 1 if st.session_state[f"labelling-checkbox-{i}"] else 0
                 dataset.edit_label(i, correct_label)
 
             dataset.save_labels()
