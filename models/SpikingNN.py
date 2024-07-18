@@ -135,8 +135,8 @@ class SpikingReadoutLayer(nn.Module):
 class SpikingNN(nn.Module):
     def __init__(
         self,
-        layer_sizes,
-        nb_steps,
+        layer_sizes: list,
+        nb_steps: int,
         time_step=1e-2,
         tau_mem=10e-2,
         tau_syn=5e-2,
