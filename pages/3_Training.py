@@ -62,36 +62,22 @@ if model_name:
         nb_steps=model_params["nb_steps"],
     )
 
-    train_test_ratio = st.slider(
-        "Train/Test Ratio", min_value=0.0, max_value=1.0, value=0.20, step=0.01
-    )
+    train_test_ratio = st.slider("Train/Test Ratio", min_value=0.0, max_value=1.0, value=0.20, step=0.01)
     nb_test_samples = int(len(dataset) * train_test_ratio)
+    nb_test_samples = (nb_test_samples // model_params["batch_size"]) * model_params["batch_size"]
     nb_train_samples = len(dataset) - nb_test_samples
+    nb_train_samples = (nb_train_samples // model_params["batch_size"]) * model_params["batch_size"]
     cols = st.columns(6)
     with cols[2]:
         st.write(f"Train Samples: {nb_train_samples}")
     with cols[3]:
         st.write(f"Test Samples: {nb_test_samples}")
-    if (
-        nb_test_samples % model_params["batch_size"] != 0
-        or nb_train_samples % model_params["batch_size"] != 0
-    ):
-        st.error(
-            f"Sample sizes should be divisible by batch size {model_params['batch_size']}"
-        )
-        start_training_disabled = True
-    else:
-        start_training_disabled = False
 
     nb_epochs = st.number_input("Number of Epochs", min_value=1, max_value=100, value=5)
-    learning_rate = st.number_input(
-        "Learning Rate", min_value=1e-5, max_value=1e-1, value=2e-4, format="%.5f"
-    )
+    learning_rate = st.number_input("Learning Rate", min_value=1e-5, max_value=1e-1, value=2e-4, format="%.5f")
     evaluate_on_epoch = st.checkbox("Evaluate test samples on each epoch", value=True)
 
-    if st.button(
-        "Start Training Run", type="primary", disabled=start_training_disabled
-    ):
+    if st.button("Start Training Run", type="primary", disabled=start_training_disabled):
 
         if model_name not in training_params:
             training_params[model_name] = []
@@ -108,14 +94,10 @@ if model_name:
 
         with st.spinner("Loading datasets..."):
             train_dataset, test_dataset = dataset.random_split(
-                test_size=train_test_ratio, shuffle=True
+                test_size=train_test_ratio, batch_size=model_params["batch_size"], shuffle=True
             )
-            train_loader = SpikingDataLoader(
-                train_dataset, batch_size=model_params["batch_size"], shuffle=False
-            )
-            test_loader = SpikingDataLoader(
-                test_dataset, batch_size=model_params["batch_size"], shuffle=False
-            )
+            train_loader = SpikingDataLoader(train_dataset, batch_size=model_params["batch_size"], shuffle=False)
+            test_loader = SpikingDataLoader(test_dataset, batch_size=model_params["batch_size"], shuffle=False)
 
         with st.spinner("Training the model..."):
             model = st.session_state["model"]
