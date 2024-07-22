@@ -26,15 +26,11 @@ with st.expander("Create New Model"):
     }
     model_name = st.text_input("Model Name")
     snn_layers = []
-    video_dims = st.selectbox(
-        "Neurons in Input Layer (Video Dimensions)", video_presets.keys(), index=0
-    )
+    video_dims = st.selectbox("Neurons in Input Layer (Video Dimensions)", video_presets.keys(), index=0)
     nb_inputs = video_presets[video_dims]
     snn_layers.append(nb_inputs)
 
-    num_hidden_layers = st.number_input(
-        "Number of Hidden Layers", min_value=1, max_value=10, value=1
-    )
+    num_hidden_layers = st.number_input("Number of Hidden Layers", min_value=1, max_value=10, value=1)
 
     for i in range(num_hidden_layers):
         nb_hidden = st.number_input(
@@ -49,21 +45,11 @@ with st.expander("Create New Model"):
     # Output layer
     snn_layers.append(2)
 
-    tau_mem = st.number_input(
-        "Membrane Time Constant (miliseconds)", min_value=50, max_value=500, value=100
-    )
-    tau_syn = st.number_input(
-        "Synaptic Time Constant (miliseconds)", min_value=50, max_value=500, value=50
-    )
-    max_time = st.number_input(
-        "Max Time Period (s)", min_value=1, max_value=60, value=15
-    )
-    nb_steps = st.number_input(
-        "Number of Time steps", min_value=500, max_value=5000, value=1000
-    )
-    time_step = st.number_input(
-        "Time Step (miliseconds)", min_value=1, max_value=100, value=10
-    )
+    tau_mem = st.number_input("Membrane Time Constant (miliseconds)", min_value=50, max_value=500, value=100)
+    tau_syn = st.number_input("Synaptic Time Constant (miliseconds)", min_value=50, max_value=500, value=50)
+    max_time = st.number_input("Max Time Period (s)", min_value=1, max_value=60, value=15)
+    nb_steps = st.number_input("Number of Time steps", min_value=500, max_value=5000, value=1000)
+    time_step = st.number_input("Time Step (miliseconds)", min_value=1, max_value=100, value=10)
 
     # Button to create a new model
     if st.button("Save Model"):
@@ -74,6 +60,7 @@ with st.expander("Create New Model"):
             "tau_mem": tau_mem * 1e-3,
             "tau_syn": tau_syn * 1e-3,
             "max_time": max_time,
+            "batch_size": 7,
         }
         model = SpikingNN(
             layer_sizes=snn_layers,
@@ -88,9 +75,7 @@ with st.expander("Create New Model"):
         st.success(f"Model {model_name} saved successfully.")
 
 # Dropdown to select saved models
-selected_model = st.selectbox(
-    "Select a saved model:", model_files, index=len(model_files) - 1
-)
+selected_model = st.selectbox("Select a saved model:", model_files, index=len(model_files) - 1)
 
 # Display model parameters before loading
 if selected_model:
