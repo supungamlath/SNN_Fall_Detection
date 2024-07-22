@@ -34,10 +34,10 @@ if model_name:
                 )
                 params_string = f"```{params_string}```"
                 st.markdown(params_string)
-                if "train_accuracy_hist" in run:
+                if "train_metrics_hist" in run:
                     live_plot_plotly(
-                        run["train_accuracy_hist"],
-                        run["test_accuracy_hist"],
+                        [epoch["accuracy"] for epoch in run["train_metrics_hist"]],
+                        [epoch["accuracy"] for epoch in run["test_metrics_hist"]],
                         title="Model Accuracy",
                         y_label="Accuracy",
                         renderer=st.plotly_chart,
@@ -103,15 +103,15 @@ if model_name:
             model = st.session_state["model"]
             trainer = Trainer(model=model)
 
-            histories = trainer.train(
+            train_metrics_hist, test_metrics_hist = trainer.train(
                 train_loader,
                 nb_epochs=nb_epochs,
                 lr=learning_rate,
                 evaluate_dataloader=test_loader if evaluate_on_epoch else None,
                 callback_fn=print_loss_accuracy,
             )
-            training_params[model_name][-1]["train_metrics_hist"] = histories[0]
-            training_params[model_name][-1]["test_metrics_hist"] = histories[1]
+            training_params[model_name][-1]["train_metrics_hist"] = train_metrics_hist
+            training_params[model_name][-1]["test_metrics_hist"] = test_metrics_hist
             save_params(training_runs_file, training_params)
 
         with st.spinner("Saving the model..."):
@@ -120,15 +120,15 @@ if model_name:
         col1, col2 = st.columns(2)
         with col1:
             live_plot_plotly(
-                histories[0],
+                [epoch["loss"] for epoch in train_metrics_hist],
                 title="Training Loss",
                 y_label="Loss",
                 renderer=st.plotly_chart,
             )
         with col2:
             live_plot_plotly(
-                histories[1],
-                histories[2],
+                [epoch["accuracy"] for epoch in train_metrics_hist],
+                [epoch["accuracy"] for epoch in test_metrics_hist],
                 title="Model Accuracy",
                 y_label="Accuracy",
                 renderer=st.plotly_chart,
