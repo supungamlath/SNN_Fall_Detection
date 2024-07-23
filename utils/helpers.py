@@ -90,39 +90,18 @@ def training_json_to_dataframe(data):
                 "train_test_ratio": experiment.get("train_test_ratio"),
                 "nb_epochs": experiment.get("nb_epochs"),
                 "learning_rate": experiment.get("learning_rate"),
-                "train_loss_hist": experiment.get("loss_hist"),
-                "train_accuracy_hist": experiment.get("train_accuracy_hist"),
-                "test_accuracy_hist": experiment.get("test_accuracy_hist"),
             }
             if "train_metrics_hist" in experiment:
-                record["train_accuracy_hist"] = [
-                    metrics["accuracy"] for metrics in experiment["train_metrics_hist"]
-                ]
-                record["train_precision_hist"] = [
-                    metrics["precision"] for metrics in experiment["train_metrics_hist"]
-                ]
-                record["train_recall_hist"] = [
-                    metrics["recall"] for metrics in experiment["train_metrics_hist"]
-                ]
-                record["train_f1_hist"] = [
-                    metrics["f1_score"] for metrics in experiment["train_metrics_hist"]
-                ]
-                record["train_loss_hist"] = [
-                    metrics["loss"] for metrics in experiment["train_metrics_hist"]
-                ]
+                record["train_accuracy_hist"] = [metrics["accuracy"] for metrics in experiment["train_metrics_hist"]]
+                record["train_precision_hist"] = [metrics["precision"] for metrics in experiment["train_metrics_hist"]]
+                record["train_recall_hist"] = [metrics["recall"] for metrics in experiment["train_metrics_hist"]]
+                record["train_f1_score_hist"] = [metrics["f1_score"] for metrics in experiment["train_metrics_hist"]]
+                record["train_loss_hist"] = [metrics["loss"] for metrics in experiment["train_metrics_hist"]]
             if "test_metrics_hist" in experiment:
-                record["test_accuracy_hist"] = [
-                    metrics["accuracy"] for metrics in experiment["test_metrics_hist"]
-                ]
-                record["test_precision_hist"] = [
-                    metrics["precision"] for metrics in experiment["test_metrics_hist"]
-                ]
-                record["test_recall_hist"] = [
-                    metrics["recall"] for metrics in experiment["test_metrics_hist"]
-                ]
-                record["test_f1_hist"] = [
-                    metrics["f1_score"] for metrics in experiment["test_metrics_hist"]
-                ]
+                record["test_accuracy_hist"] = [metrics["accuracy"] for metrics in experiment["test_metrics_hist"]]
+                record["test_precision_hist"] = [metrics["precision"] for metrics in experiment["test_metrics_hist"]]
+                record["test_recall_hist"] = [metrics["recall"] for metrics in experiment["test_metrics_hist"]]
+                record["test_f1_score_hist"] = [metrics["f1_score"] for metrics in experiment["test_metrics_hist"]]
             records.append(record)
     df = pd.DataFrame(records)
     return df
