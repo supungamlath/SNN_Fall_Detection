@@ -45,8 +45,8 @@ with st.expander("Create New Model"):
     # Output layer
     snn_layers.append(2)
 
-    tau_mem = st.number_input("Membrane Time Constant (miliseconds)", min_value=50, max_value=500, value=100)
-    tau_syn = st.number_input("Synaptic Time Constant (miliseconds)", min_value=50, max_value=500, value=50)
+    tau_mem = st.number_input("Membrane Time Constant (miliseconds)", min_value=10, max_value=500, value=100)
+    tau_syn = st.number_input("Synaptic Time Constant (miliseconds)", min_value=10, max_value=500, value=50)
     max_time = st.number_input("Max Time Period (s)", min_value=1, max_value=60, value=15)
     nb_steps = st.number_input("Number of Time steps", min_value=500, max_value=5000, value=1000)
     time_step = st.number_input("Time Step (miliseconds)", min_value=1, max_value=100, value=10)
