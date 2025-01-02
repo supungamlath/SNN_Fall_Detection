@@ -48,7 +48,7 @@ with st.expander("Create New Model"):
     tau_mem = st.number_input("Membrane Time Constant (miliseconds)", min_value=10, max_value=500, value=100)
     tau_syn = st.number_input("Synaptic Time Constant (miliseconds)", min_value=10, max_value=500, value=50)
     nb_steps = st.number_input("Number of Time steps", min_value=500, max_value=10000, value=3000)
-    time_step = st.number_input("Time Step (miliseconds)", min_value=1, max_value=100, value=10)
+    time_step = st.number_input("Time Step (miliseconds)", min_value=1, max_value=100, value=20)
 
     # Button to create a new model
     if st.button("Save Model"):
