@@ -7,10 +7,9 @@ import pandas as pd
 import streamlit as st
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from utils.visualization import plot_voltage_traces
-
-log_softmax_fn = nn.LogSoftmax(dim=1)
 
 datasets_dirs = {
     "UR Fall Dataset": f"{os.environ['root_folder']}/data/urfd-spiking-dataset-240",
@@ -41,12 +40,26 @@ def display_video(video_path, trim_time=15):
 
 def draw_row_traces(x_local, model, model_params):
     output, _ = model.forward(x_local.to_dense())
-    mem = log_softmax_fn(output)
+
+    # Normalize `mem` values to 0-1 for each trace
+    # mem = output.detach().cpu().numpy()
+    # mem = (mem - mem.min(axis=1, keepdims=True)) / (mem.max(axis=1, keepdims=True) - mem.min(axis=1, keepdims=True))
+
+    # Transpose the tensor to make dimension 1 the last dimension (for pooling)
+    mem = output
+    mem = mem.permute(0, 2, 1)  # Shape: [7, 2, 1000]
+
+    # Use AvgPool1d to reduce dimension 1 to 60
+    pooled_tensor = F.avg_pool1d(mem, kernel_size=1000 // 60, stride=1000 // 60)
+
+    # Transpose back to the original dimension order
+    result_tensor = pooled_tensor.permute(0, 2, 1)  # Shape: [7, 60, 2]
+
     two_maxims, _ = torch.max(output, 1)  # max over time
     _, model_preds = torch.max(two_maxims, 1)  # argmax over output units
     diff = torch.abs(two_maxims[:, 0] - two_maxims[:, 1])
     plot_voltage_traces(
-        mem=mem.detach().cpu().numpy(),
+        mem=result_tensor.detach().cpu().numpy(),
         diff=diff.detach().cpu().numpy(),
         labels=model_preds.detach().cpu().tolist(),
         dim=(1, model_params["batch_size"]),
