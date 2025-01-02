@@ -32,7 +32,7 @@ if selected_dataset_name:
                     display_video(dataset.get_video_path(index))
                     st.caption(dataset.get_folder_name(index))
                     is_fall = True if dataset.get_label(index) == 1 else False
-                    st.checkbox("Fall Label (Tick if Fall)", key=f"dataset-checkbox-{index}", value=is_fall)
+                    # st.checkbox("Fall Label (Tick if Fall)", key=f"dataset-checkbox-{index}", value=is_fall)
 
             submitted = st.form_submit_button("Save Labels", type="primary")
             if submitted:
