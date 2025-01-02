@@ -20,20 +20,37 @@ class SpikingDataset(Dataset):
         self.frame_width = 240
         self.max_timestamp = max_time * 1e6
         self.nb_pixels = self.frame_height * self.frame_width
+        self.scaling_factor = 1.57
 
         if read_csv:
-            # Load the CSV file into a DataFrame
-            labels_file = os.path.join(root_dir, "labels.csv")
-            if os.path.exists(labels_file):
+            labels = self.get_fall_flags()
+            self.folder_names = labels.keys()
+            self.labels = labels.values()
 
-                df = pd.read_csv(labels_file)
-                self.folder_names = df["folder_name"].tolist()
-                self.labels = df["label"].tolist()
-            else:
-                self.folder_names = [
-                    folder for folder in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, folder))
-                ]
-                self.labels = [1] * len(self.folder_names)
+    def get_fall_flags(self):
+        """
+        Reads the video_lengths_with_falls.csv file and extracts the 60 fall flag values for each video.
+
+        Returns:
+            dict: A dictionary where keys are video names and values are lists of fall flags for each second.
+        """
+        # Read the CSV file
+        labels_file = os.path.join(self.root_dir, "video_lengths_with_falls.csv")
+        df = pd.read_csv(labels_file)
+
+        # Initialize the result dictionary
+        fall_flags_dict = {}
+
+        # Iterate over each row
+        for _, row in df.iterrows():
+            # Extract video name and fall flags
+            video_name = row["name"]
+            fall_flags = [row[f"second_{i+1}"] for i in range(60)]
+
+            # Add to the dictionary
+            fall_flags_dict[video_name] = fall_flags
+
+        return fall_flags_dict
 
     def __len__(self):
         return len(self.folder_names)
@@ -46,7 +63,7 @@ class SpikingDataset(Dataset):
             # Remove events that occur after max_timestamp
             spike_tuples = spike_tuples[spike_tuples[:, 0] < self.max_timestamp]
             sample = {
-                "timestamp": spike_tuples[:, 0] / 1e6,
+                "timestamp": spike_tuples[:, 0] / 1e6 * self.scaling_factor,
                 "x": spike_tuples[:, 1],
                 "y": spike_tuples[:, 2],
                 "polarity": spike_tuples[:, 3],
