@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import StepLR
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 from utils.helpers import EarlyStopping
 from utils.visualization import plot_voltage_traces
@@ -24,9 +23,7 @@ class Trainer:
         callback_fn=None,
         stop_early=False,
     ):
-        optimizer = torch.optim.Adamax(
-            self.model.parameters(), lr=lr, betas=(0.9, 0.999)
-        )
+        optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr, betas=(0.9, 0.999))
         scheduler = StepLR(optimizer, step_size=3, gamma=0.90)
 
         log_softmax_fn = nn.LogSoftmax(dim=1)
@@ -58,8 +55,8 @@ class Trainer:
                         _, am = torch.max(m, 1)  # argmax over output units
 
                         # Convert to numpy arrays
-                        y_true = y_local.detach().cpu().numpy()
-                        y_pred = am.detach().cpu().numpy()
+                        y_true = y_local.to(torch.int64)
+                        y_pred = am
 
                         # Aggregate results
                         test_loss.append(loss_fn(log_p_y, y_local.long()).item())
@@ -84,8 +81,8 @@ class Trainer:
                 _, am = torch.max(m, 1)  # argmax over output units
 
                 # Arrays for calculating train metrics
-                y_true = y_local.detach().cpu().numpy()
-                y_pred = am.detach().cpu().numpy()
+                y_true = y_local.to(torch.int64)
+                y_pred = am
 
                 # Aggregate results
                 train_y_true.extend(y_true)
@@ -98,9 +95,7 @@ class Trainer:
                     # L1 loss on total number of spikes
                     reg_loss += reg_alpha * torch.sum(spks)
                     # L2 loss on spikes per neuron
-                    reg_loss += reg_alpha * torch.mean(
-                        torch.sum(torch.sum(spks, dim=0), dim=0) ** 2
-                    )
+                    reg_loss += reg_alpha * torch.mean(torch.sum(torch.sum(spks, dim=0), dim=0) ** 2)
 
                 # Here we combine supervised loss and the regularizer
                 loss_val = loss_fn(log_p_y, y_local.long()) + reg_loss
@@ -110,7 +105,7 @@ class Trainer:
                 optimizer.step()
                 local_loss.append(loss_val.item())
 
-            scheduler.step() 
+            scheduler.step()
             mean_loss = np.mean(local_loss)
             loss_hist.append(mean_loss)
 
@@ -129,24 +124,28 @@ class Trainer:
         return train_metrics_hist, test_metrics_hist
 
     def compute_metrics(self, all_y_pred, all_y_true):
-        """Computes classification accuracy, precision, recall, and F1 score on supplied data in batches."""
-        # Convert lists to numpy arrays
-        all_y_true = np.array(all_y_true)
-        all_y_pred = np.array(all_y_pred)
+        """Computes classification accuracy, precision, recall, and F1 score using PyTorch."""
+        # Convert lists to tensors
+        all_y_true = torch.tensor(all_y_true, dtype=torch.int64)
+        all_y_pred = torch.tensor(all_y_pred, dtype=torch.int64)
 
-        # Calculate overall metrics
-        accuracy = accuracy_score(all_y_true, all_y_pred)
-        precision = precision_score(
-            all_y_true, all_y_pred, average="binary", zero_division=0
-        )
-        recall = recall_score(all_y_true, all_y_pred, average="binary", zero_division=0)
-        f1 = f1_score(all_y_true, all_y_pred, average="binary", zero_division=0)
+        # Accuracy
+        accuracy = (all_y_pred == all_y_true).float().mean().item()
+
+        # Precision, Recall, F1 (binary classification)
+        true_positive = ((all_y_pred == 1) & (all_y_true == 1)).sum().item()
+        false_positive = ((all_y_pred == 1) & (all_y_true == 0)).sum().item()
+        false_negative = ((all_y_pred == 0) & (all_y_true == 1)).sum().item()
+
+        precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) > 0 else 0.0
+        recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) > 0 else 0.0
+        f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
 
         return {
             "accuracy": accuracy,
             "precision": precision,
             "recall": recall,
-            "f1_score": f1,
+            "f1_score": f1_score,
         }
 
     def visualize_output(self, dataloader, nb_batches=1):
