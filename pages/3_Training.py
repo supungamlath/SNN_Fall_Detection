@@ -73,9 +73,9 @@ if model_name:
     with cols[3]:
         st.write(f"Test Samples: {nb_test_samples}")
 
-    nb_epochs = st.number_input("Number of Epochs", min_value=1, max_value=100, value=5)
-    learning_rate = st.number_input("Learning Rate", min_value=1e-5, max_value=1e-1, value=2e-4, format="%.5f")
-    evaluate_on_epoch = st.checkbox("Evaluate test samples on each epoch", value=True)
+    nb_epochs = st.number_input("Number of Epochs", min_value=1, max_value=500, value=20)
+    early_stopping_option = st.checkbox("Enable early stopping", value=True)
+    learning_rate = st.number_input("Initial learning rate", min_value=1e-5, max_value=1e-1, value=2e-4, format="%.5f")
 
     if st.button("Start Training Run", type="primary", disabled=start_training_disabled):
 
@@ -107,8 +107,9 @@ if model_name:
                 train_loader,
                 nb_epochs=nb_epochs,
                 lr=learning_rate,
-                evaluate_dataloader=test_loader if evaluate_on_epoch else None,
+                evaluate_dataloader=test_loader,
                 callback_fn=print_loss_accuracy,
+                stop_early=early_stopping_option,
             )
             training_params[model_name][-1]["train_metrics_hist"] = train_metrics_hist
             training_params[model_name][-1]["test_metrics_hist"] = test_metrics_hist
@@ -134,11 +135,6 @@ if model_name:
                 renderer=st.plotly_chart,
             )
         st.success("Training run completed successfully.")
-
-        if not evaluate_on_epoch:
-            with st.spinner("Evaluating test set accuracy..."):
-                test_acc = f"```\nTest Set Accuracy: {trainer.compute_accuracy(test_loader)}\n```"
-                st.markdown(test_acc)
 
 else:
     st.write("Please select a model first.")

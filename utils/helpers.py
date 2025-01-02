@@ -1,4 +1,5 @@
 # Define the path to the video datasets
+import copy
 import json
 import os
 import shlex
@@ -116,3 +117,26 @@ def models_info_json_to_dataframe(data):
         records.append(record)
     df = pd.DataFrame(records)
     return df
+
+class EarlyStopping:
+    def __init__(self, patience=3, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.best_loss = None
+        self.counter = 0
+        self.status = ""
+
+    def __call__(self, val_loss):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+        elif self.best_loss - val_loss >= self.min_delta:
+            self.best_loss = val_loss
+            self.counter = 0
+            self.status = f"Improvement found, counter reset to {self.counter}"
+        else:
+            self.counter += 1
+            self.status = f"No improvement in the last {self.counter} epochs"
+            if self.counter >= self.patience:
+                self.status = f"Early stopping triggered after {self.counter} epochs."
+                return True
+        return False

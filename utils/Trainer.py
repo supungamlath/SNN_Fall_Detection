@@ -1,14 +1,18 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.optim.lr_scheduler import StepLR
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
+from utils.helpers import EarlyStopping
 from utils.visualization import plot_voltage_traces
 
 
 class Trainer:
     def __init__(self, model):
         self.model = model
+        self.early_stopper = EarlyStopping()
+        self.is_done = False
 
     def train(
         self,
@@ -18,10 +22,12 @@ class Trainer:
         reg_alpha=2e-6,
         evaluate_dataloader=None,
         callback_fn=None,
+        stop_early=False,
     ):
         optimizer = torch.optim.Adamax(
             self.model.parameters(), lr=lr, betas=(0.9, 0.999)
         )
+        scheduler = StepLR(optimizer, step_size=3, gamma=0.90)
 
         log_softmax_fn = nn.LogSoftmax(dim=1)
         loss_fn = nn.NLLLoss()
@@ -34,27 +40,41 @@ class Trainer:
             local_loss = []
             train_y_true = []
             train_y_pred = []
+
+            if self.is_done:
+                break
+
             print(f"Epoch: {e + 1}")
 
             if evaluate_dataloader is not None:
                 test_y_true = []
                 test_y_pred = []
+                test_loss = []
                 for x_local, y_local in evaluate_dataloader:
-                    output, _ = self.model.forward(x_local.to_dense())
-                    m, _ = torch.max(output, 1)  # max over time
-                    _, am = torch.max(m, 1)  # argmax over output units
+                    with torch.no_grad():
+                        output, _ = self.model.forward(x_local.to_dense())
+                        m, _ = torch.max(output, 1)  # max over time
+                        log_p_y = log_softmax_fn(m)
+                        _, am = torch.max(m, 1)  # argmax over output units
 
-                    # Convert to numpy arrays
-                    y_true = y_local.detach().cpu().numpy()
-                    y_pred = am.detach().cpu().numpy()
+                        # Convert to numpy arrays
+                        y_true = y_local.detach().cpu().numpy()
+                        y_pred = am.detach().cpu().numpy()
 
-                    # Aggregate results
-                    test_y_true.extend(y_true)
-                    test_y_pred.extend(y_pred)
+                        # Aggregate results
+                        test_loss.append(loss_fn(log_p_y, y_local.long()).item())
+                        test_y_true.extend(y_true)
+                        test_y_pred.extend(y_pred)
 
+                mean_test_loss = np.mean(test_loss)
                 test_metrics = self.compute_metrics(test_y_pred, test_y_true)
+                test_metrics["loss"] = mean_test_loss
                 test_metrics_hist.append(test_metrics)
                 print(f"Test metrics : {test_metrics}")
+
+                if stop_early and self.early_stopper(mean_test_loss):
+                    self.is_done = True
+                    print(self.early_stopper.status)
 
             for x_local, y_local in train_dataloader:
                 output, recs = self.model.forward(x_local.to_dense())
@@ -90,6 +110,7 @@ class Trainer:
                 optimizer.step()
                 local_loss.append(loss_val.item())
 
+            scheduler.step() 
             mean_loss = np.mean(local_loss)
             loss_hist.append(mean_loss)
 
