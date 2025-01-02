@@ -1,5 +1,4 @@
 # Define the path to the video datasets
-import copy
 import json
 import os
 import shlex
@@ -7,9 +6,11 @@ import subprocess
 import pandas as pd
 import streamlit as st
 import torch
+import torch.nn as nn
 
 from utils.visualization import plot_voltage_traces
 
+log_softmax_fn = nn.LogSoftmax(dim=1)
 
 datasets_dirs = {
     "UR Fall Dataset": f"{os.environ['root_folder']}/data/urfd-spiking-dataset-240",
@@ -40,11 +41,12 @@ def display_video(video_path, trim_time=15):
 
 def draw_row_traces(x_local, model, model_params):
     output, _ = model.forward(x_local.to_dense())
+    mem = log_softmax_fn(output)
     two_maxims, _ = torch.max(output, 1)  # max over time
     _, model_preds = torch.max(two_maxims, 1)  # argmax over output units
     diff = torch.abs(two_maxims[:, 0] - two_maxims[:, 1])
     plot_voltage_traces(
-        mem=output.detach().cpu().numpy(),
+        mem=mem.detach().cpu().numpy(),
         diff=diff.detach().cpu().numpy(),
         labels=model_preds.detach().cpu().tolist(),
         dim=(1, model_params["batch_size"]),
@@ -117,6 +119,7 @@ def models_info_json_to_dataframe(data):
         records.append(record)
     df = pd.DataFrame(records)
     return df
+
 
 class EarlyStopping:
     def __init__(self, patience=3, min_delta=0):
