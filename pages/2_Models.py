@@ -47,8 +47,7 @@ with st.expander("Create New Model"):
 
     tau_mem = st.number_input("Membrane Time Constant (miliseconds)", min_value=10, max_value=500, value=100)
     tau_syn = st.number_input("Synaptic Time Constant (miliseconds)", min_value=10, max_value=500, value=50)
-    max_time = st.number_input("Max Time Period (s)", min_value=1, max_value=60, value=15)
-    nb_steps = st.number_input("Number of Time steps", min_value=500, max_value=5000, value=1000)
+    nb_steps = st.number_input("Number of Time steps", min_value=500, max_value=10000, value=3000)
     time_step = st.number_input("Time Step (miliseconds)", min_value=1, max_value=100, value=10)
 
     # Button to create a new model
@@ -59,7 +58,7 @@ with st.expander("Create New Model"):
             "time_step": time_step * 1e-3,
             "tau_mem": tau_mem * 1e-3,
             "tau_syn": tau_syn * 1e-3,
-            "max_time": max_time,
+            "max_time": 60,
             "batch_size": 7,
         }
         model = SpikingNN(
