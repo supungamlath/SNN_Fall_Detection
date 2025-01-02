@@ -24,18 +24,18 @@ class SpikingDataset(Dataset):
 
         if read_csv:
             labels = self.get_fall_flags()
-            self.folder_names = labels.keys()
-            self.labels = labels.values()
+            self.folder_names = list(labels.keys())
+            self.labels = list(labels.values())
 
     def get_fall_flags(self):
         """
-        Reads the video_lengths_with_falls.csv file and extracts the 60 fall flag values for each video.
+        Reads the labels.csv file and extracts the 60 fall flag values for each video.
 
         Returns:
             dict: A dictionary where keys are video names and values are lists of fall flags for each second.
         """
         # Read the CSV file
-        labels_file = os.path.join(self.root_dir, "video_lengths_with_falls.csv")
+        labels_file = os.path.join(self.root_dir, "labels.csv")
         df = pd.read_csv(labels_file)
 
         # Initialize the result dictionary
