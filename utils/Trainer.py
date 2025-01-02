@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import StepLR
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 from utils.helpers import EarlyStopping
 from utils.visualization import plot_voltage_traces
@@ -26,8 +27,7 @@ class Trainer:
         optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr, betas=(0.9, 0.999))
         scheduler = StepLR(optimizer, step_size=3, gamma=0.90)
 
-        log_softmax_fn = nn.LogSoftmax(dim=1)
-        loss_fn = nn.NLLLoss()
+        loss_fn = nn.BCELoss()
 
         loss_hist = []
         train_metrics_hist = []
@@ -50,16 +50,16 @@ class Trainer:
                 for x_local, y_local in evaluate_dataloader:
                     with torch.no_grad():
                         output, _ = self.model.forward(x_local.to_dense())
-                        m, _ = torch.max(output, 1)  # max over time
-                        log_p_y = log_softmax_fn(m)
-                        _, am = torch.max(m, 1)  # argmax over output units
+                        chunk_size = 3000 // 60
+                        output[:, :chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
 
-                        # Convert to numpy arrays
+                        # Arrays for calculating test metrics
                         y_true = y_local.to(torch.int64)
-                        y_pred = am
+                        y_pred = torch.sigmoid(output)
 
                         # Aggregate results
-                        test_loss.append(loss_fn(log_p_y, y_local.long()).item())
+                        bce_loss = loss_fn(output[:,:,0], -1 * y_pred) + loss_fn(output[:,:,1], y_pred)
+                        test_loss.append(bce_loss.item())
                         test_y_true.extend(y_true)
                         test_y_pred.extend(y_pred)
 
@@ -76,13 +76,12 @@ class Trainer:
             for x_local, y_local in train_dataloader:
                 output, recs = self.model.forward(x_local.to_dense())
                 spk_recs, _ = recs
-                m, _ = torch.max(output, 1)
-                log_p_y = log_softmax_fn(m)
-                _, am = torch.max(m, 1)  # argmax over output units
+                chunk_size = 3000 // 60
+                output[:, :chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
 
                 # Arrays for calculating train metrics
                 y_true = y_local.to(torch.int64)
-                y_pred = am
+                y_pred = torch.sigmoid(output)
 
                 # Aggregate results
                 train_y_true.extend(y_true)
@@ -98,7 +97,7 @@ class Trainer:
                     reg_loss += reg_alpha * torch.mean(torch.sum(torch.sum(spks, dim=0), dim=0) ** 2)
 
                 # Here we combine supervised loss and the regularizer
-                loss_val = loss_fn(log_p_y, y_local.long()) + reg_loss
+                loss_val = loss_fn(output[:,:,0], -1 * y_pred) + loss_fn(output[:,:,1], y_pred) + reg_loss
 
                 optimizer.zero_grad()
                 loss_val.backward()
@@ -123,29 +122,22 @@ class Trainer:
 
         return train_metrics_hist, test_metrics_hist
 
-    def compute_metrics(self, all_y_pred, all_y_true):
-        """Computes classification accuracy, precision, recall, and F1 score using PyTorch."""
-        # Convert lists to tensors
-        all_y_true = torch.tensor(all_y_true, dtype=torch.int64)
-        all_y_pred = torch.tensor(all_y_pred, dtype=torch.int64)
-
-        # Accuracy
-        accuracy = (all_y_pred == all_y_true).float().mean().item()
-
-        # Precision, Recall, F1 (binary classification)
-        true_positive = ((all_y_pred == 1) & (all_y_true == 1)).sum().item()
-        false_positive = ((all_y_pred == 1) & (all_y_true == 0)).sum().item()
-        false_negative = ((all_y_pred == 0) & (all_y_true == 1)).sum().item()
-
-        precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) > 0 else 0.0
-        recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) > 0 else 0.0
-        f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
-
+    def compute_metrics(self, y_pred, y_true):
+        # Flatten predictions and true labels for metric calculation
+        y_pred = torch.argmax(y_pred, dim=-1).cpu().numpy().flatten()
+        y_true = y_true.cpu().numpy().flatten()
+        
+        # Calculate metrics
+        accuracy = accuracy_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred, average="binary")
+        recall = recall_score(y_true, y_pred, average="binary")
+        f1 = f1_score(y_true, y_pred, average="binary")
+        
         return {
             "accuracy": accuracy,
             "precision": precision,
             "recall": recall,
-            "f1_score": f1_score,
+            "f1_score": f1,
         }
 
     def visualize_output(self, dataloader, nb_batches=1):
