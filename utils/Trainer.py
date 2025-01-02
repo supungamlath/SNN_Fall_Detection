@@ -58,13 +58,11 @@ class Trainer:
                         y_pred = torch.sigmoid(output)
 
                         # Aggregate results
-                        bce_loss = loss_fn(output.permute(0, 2, 1), y_true) 
+                        bce_loss = loss_fn(output.permute(0, 2, 1), y_true)
                         test_loss.append(bce_loss.item())
-                        test_y_true.append(y_true)
-                        test_y_pred.append(y_pred)
+                        test_y_true.extend(y_true.cpu().detach().numpy())
+                        test_y_pred.extend(y_pred.cpu().detach().numpy())
 
-                test_y_true = torch.cat(test_y_true, dim=0)  # Shape: [num_samples, 60]
-                test_y_pred = torch.cat(test_y_pred, dim=0)  # Shape: [num_samples, 60, 2]
                 mean_test_loss = np.mean(test_loss)
                 test_metrics = self.compute_metrics(test_y_pred, test_y_true)
                 test_metrics["loss"] = mean_test_loss
@@ -86,8 +84,8 @@ class Trainer:
                 y_pred = torch.sigmoid(output)
 
                 # Aggregate results
-                train_y_true.append(y_true)
-                train_y_pred.append(y_pred)
+                train_y_true.extend(y_true.cpu().detach().numpy())
+                train_y_pred.extend(y_pred.cpu().detach().numpy())
 
                 # Here we set up our regularizer loss
                 # The reg_alpha strength parameter here are merely a guess and there should be ample room for improvement by tuning these paramters.
@@ -110,8 +108,6 @@ class Trainer:
             mean_loss = np.mean(local_loss)
             loss_hist.append(mean_loss)
 
-            train_y_true = torch.cat(train_y_true, dim=0)  # Shape: [num_samples, 60]
-            train_y_pred = torch.cat(train_y_pred, dim=0)  # Shape: [num_samples, 60, 2]
             train_metrics = self.compute_metrics(train_y_pred, train_y_true)
             train_metrics["loss"] = mean_loss
             train_metrics_hist.append(train_metrics)
@@ -127,42 +123,23 @@ class Trainer:
         return train_metrics_hist, test_metrics_hist
 
     def compute_metrics(self, y_pred, y_true):
-        # y_pred: [batch_size, 60, 2] logits
-        # y_true: [batch_size, 60] integer labels (0 or 1)
+        # Flatten predictions and true labels for metric calculation
+        y_pred = np.argmax(np.array(y_pred), axis=-1).flatten()
+        y_true = np.array(y_true).flatten()
 
-        # Get predicted class probabilities
-        y_pred_class = torch.argmax(y_pred, dim=-1)  # [batch_size, 60]
-
-        # Flatten the tensors to compute metrics across all predictions
-        y_pred_class_flat = y_pred_class.view(-1)  # [batch_size * 60]
-        y_true_flat = y_true.view(-1)  # [batch_size * 60]
-
-        # Accuracy
-        accuracy = (y_pred_class_flat == y_true_flat).float().mean()
-
-        # Precision, Recall, and F1-Score
-        true_positive = ((y_pred_class_flat == 1) & (y_true_flat == 1)).sum().float()
-        false_positive = ((y_pred_class_flat == 1) & (y_true_flat == 0)).sum().float()
-        false_negative = ((y_pred_class_flat == 0) & (y_true_flat == 1)).sum().float()
-
-        if (true_positive + false_positive > 0):
-            precision = true_positive / (true_positive + false_positive)
-        else:
-            precision = 1000.0
-        if (true_positive + false_negative > 0):
-            recall = true_positive / (true_positive + false_negative)
-        else:
-            recall = 1000.0
-        f1 = 2 * (precision * recall) / (precision + recall)
+        # Calculate metrics
+        accuracy = accuracy_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred, average="binary")
+        recall = recall_score(y_true, y_pred, average="binary")
+        f1 = f1_score(y_true, y_pred, average="binary")
 
         return {
-            "accuracy": accuracy.item(),
-            "precision": precision.item(),
-            "recall": recall.item(),
-            "f1_score": f1.item(),
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1_score": f1,
         }
 
-    
     def visualize_output(self, dataloader, nb_batches=1):
         batch_counter = 0
         for x_local, y_local in dataloader:
