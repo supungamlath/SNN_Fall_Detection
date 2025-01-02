@@ -27,7 +27,7 @@ class Trainer:
         optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr, betas=(0.9, 0.999))
         scheduler = StepLR(optimizer, step_size=3, gamma=0.90)
 
-        loss_fn = nn.BCELoss()
+        loss_fn = nn.CrossEntropyLoss()
 
         loss_hist = []
         train_metrics_hist = []
@@ -51,18 +51,20 @@ class Trainer:
                     with torch.no_grad():
                         output, _ = self.model.forward(x_local.to_dense())
                         chunk_size = 3000 // 60
-                        output[:, :chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
+                        output = output.reshape(7, 60, chunk_size, 2).mean(dim=2)
 
                         # Arrays for calculating test metrics
-                        y_true = y_local.to(torch.int64)
+                        y_true = y_local.long()
                         y_pred = torch.sigmoid(output)
 
                         # Aggregate results
-                        bce_loss = loss_fn(output[:,:,0], -1 * y_pred) + loss_fn(output[:,:,1], y_pred)
+                        bce_loss = loss_fn(output.permute(0, 2, 1), y_true) 
                         test_loss.append(bce_loss.item())
-                        test_y_true.extend(y_true)
-                        test_y_pred.extend(y_pred)
+                        test_y_true.append(y_true)
+                        test_y_pred.append(y_pred)
 
+                test_y_true = torch.cat(test_y_true, dim=0)  # Shape: [num_samples, 60]
+                test_y_pred = torch.cat(test_y_pred, dim=0)  # Shape: [num_samples, 60, 2]
                 mean_test_loss = np.mean(test_loss)
                 test_metrics = self.compute_metrics(test_y_pred, test_y_true)
                 test_metrics["loss"] = mean_test_loss
@@ -77,15 +79,15 @@ class Trainer:
                 output, recs = self.model.forward(x_local.to_dense())
                 spk_recs, _ = recs
                 chunk_size = 3000 // 60
-                output[:, :chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
+                output = output.reshape(7, 60, chunk_size, 2).mean(dim=2)
 
                 # Arrays for calculating train metrics
-                y_true = y_local.to(torch.int64)
+                y_true = y_local.long()
                 y_pred = torch.sigmoid(output)
 
                 # Aggregate results
-                train_y_true.extend(y_true)
-                train_y_pred.extend(y_pred)
+                train_y_true.append(y_true)
+                train_y_pred.append(y_pred)
 
                 # Here we set up our regularizer loss
                 # The reg_alpha strength parameter here are merely a guess and there should be ample room for improvement by tuning these paramters.
@@ -97,7 +99,7 @@ class Trainer:
                     reg_loss += reg_alpha * torch.mean(torch.sum(torch.sum(spks, dim=0), dim=0) ** 2)
 
                 # Here we combine supervised loss and the regularizer
-                loss_val = loss_fn(output[:,:,0], -1 * y_pred) + loss_fn(output[:,:,1], y_pred) + reg_loss
+                loss_val = loss_fn(output.permute(0, 2, 1), y_true) + reg_loss
 
                 optimizer.zero_grad()
                 loss_val.backward()
@@ -108,6 +110,8 @@ class Trainer:
             mean_loss = np.mean(local_loss)
             loss_hist.append(mean_loss)
 
+            train_y_true = torch.cat(train_y_true, dim=0)  # Shape: [num_samples, 60]
+            train_y_pred = torch.cat(train_y_pred, dim=0)  # Shape: [num_samples, 60, 2]
             train_metrics = self.compute_metrics(train_y_pred, train_y_true)
             train_metrics["loss"] = mean_loss
             train_metrics_hist.append(train_metrics)
@@ -123,23 +127,42 @@ class Trainer:
         return train_metrics_hist, test_metrics_hist
 
     def compute_metrics(self, y_pred, y_true):
-        # Flatten predictions and true labels for metric calculation
-        y_pred = torch.argmax(y_pred, dim=-1).cpu().numpy().flatten()
-        y_true = y_true.cpu().numpy().flatten()
-        
-        # Calculate metrics
-        accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, average="binary")
-        recall = recall_score(y_true, y_pred, average="binary")
-        f1 = f1_score(y_true, y_pred, average="binary")
-        
+        # y_pred: [batch_size, 60, 2] logits
+        # y_true: [batch_size, 60] integer labels (0 or 1)
+
+        # Get predicted class probabilities
+        y_pred_class = torch.argmax(y_pred, dim=-1)  # [batch_size, 60]
+
+        # Flatten the tensors to compute metrics across all predictions
+        y_pred_class_flat = y_pred_class.view(-1)  # [batch_size * 60]
+        y_true_flat = y_true.view(-1)  # [batch_size * 60]
+
+        # Accuracy
+        accuracy = (y_pred_class_flat == y_true_flat).float().mean()
+
+        # Precision, Recall, and F1-Score
+        true_positive = ((y_pred_class_flat == 1) & (y_true_flat == 1)).sum().float()
+        false_positive = ((y_pred_class_flat == 1) & (y_true_flat == 0)).sum().float()
+        false_negative = ((y_pred_class_flat == 0) & (y_true_flat == 1)).sum().float()
+
+        if (true_positive + false_positive > 0):
+            precision = true_positive / (true_positive + false_positive)
+        else:
+            precision = 1000.0
+        if (true_positive + false_negative > 0):
+            recall = true_positive / (true_positive + false_negative)
+        else:
+            recall = 1000.0
+        f1 = 2 * (precision * recall) / (precision + recall)
+
         return {
-            "accuracy": accuracy,
-            "precision": precision,
-            "recall": recall,
-            "f1_score": f1,
+            "accuracy": accuracy.item(),
+            "precision": precision.item(),
+            "recall": recall.item(),
+            "f1_score": f1.item(),
         }
 
+    
     def visualize_output(self, dataloader, nb_batches=1):
         batch_counter = 0
         for x_local, y_local in dataloader:
