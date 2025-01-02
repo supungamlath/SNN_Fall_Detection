@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from utils.visualization import plot_voltage_traces
 
 datasets_dirs = {
-    "UR Fall Dataset": f"{os.environ['root_folder']}/data/urfd-spiking-dataset-240",
+    # "UR Fall Dataset": f"{os.environ['root_folder']}/data/urfd-spiking-dataset-240",
     "HAR UP Fall Dataset": f"{os.environ['root_folder']}/data/har-up-spiking-dataset-240",
 }
 
