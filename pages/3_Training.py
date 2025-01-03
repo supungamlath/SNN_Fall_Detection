@@ -93,9 +93,7 @@ if model_name:
         save_params(training_runs_file, training_params)
 
         with st.spinner("Loading datasets..."):
-            train_dataset, test_dataset = dataset.random_split(
-                test_size=train_test_ratio, batch_size=model_params["batch_size"], shuffle=True
-            )
+            train_dataset, test_dataset = dataset.random_split(test_size=train_test_ratio, shuffle=True)
             train_loader = SpikingDataLoader(train_dataset, batch_size=model_params["batch_size"], shuffle=False)
             test_loader = SpikingDataLoader(test_dataset, batch_size=model_params["batch_size"], shuffle=False)
 
