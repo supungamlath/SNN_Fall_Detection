@@ -86,7 +86,12 @@ class SpikingDataset(Dataset):
         video_path = os.path.join(self.root_dir, self.folder_names[idx], "dvs-video.avi")
         return os.path.normpath(video_path)
 
-    def random_split(self, test_size=0.25, shuffle=True, batch_size=7):
+    def _adjust_to_batch_size(self, data, batch_size=7):
+        size = len(data)
+        adjusted_size = (size // batch_size) * batch_size
+        return data[:adjusted_size]
+
+    def random_split(self, test_size=0.25, shuffle=True):
         train_dataset = SpikingDataset(
             root_dir=self.root_dir,
             max_time=self.max_time,
@@ -110,26 +115,85 @@ class SpikingDataset(Dataset):
         if shuffle:
             np.random.shuffle(combined)
 
-        # Calculate total number of elements
+        # Calculate the split index
         total_elements = len(combined)
-
-        # Calculate desired sizes
         test_size_elements = int(total_elements * test_size)
-        train_size_elements = total_elements - test_size_elements
-
-        # Adjust sizes to be divisible by batch_size
-        test_size_adjusted = (test_size_elements // batch_size) * batch_size
-        train_size_adjusted = (train_size_elements // batch_size) * batch_size
 
         # Split the data
-        train_data = combined[0:train_size_adjusted]
-        test_data = combined[train_size_adjusted : train_size_adjusted + test_size_adjusted]
+        train_data = combined[:-test_size_elements]
+        test_data = combined[-test_size_elements:]
 
-        # Separate the folder names and labels
-        train_dataset.folder_names, train_dataset.labels = zip(*train_data)
-        test_dataset.folder_names, test_dataset.labels = zip(*test_data)
+        # Adjust data sizes to be divisible by batch_size
+        train_data = self._adjust_to_batch_size(train_data)
+        test_data = self._adjust_to_batch_size(test_data)
+
+        # Separate folder names and labels
+        train_dataset.folder_names, train_dataset.labels = zip(*train_data) if train_data else ([], [])
+        test_dataset.folder_names, test_dataset.labels = zip(*test_data) if test_data else ([], [])
 
         return train_dataset, test_dataset
+
+    def split_by_subjects(self):
+        train_subjects = {
+            "Subject1",
+            "Subject3",
+            "Subject4",
+            "Subject7",
+            "Subject10",
+            "Subject11",
+            "Subject12",
+            "Subject13",
+            "Subject14",
+        }
+        test_subjects = {"Subject15", "Subject16", "Subject17"}
+        dev_subjects = {"Subject2", "Subject5", "Subject6", "Subject8", "Subject9"}
+
+        train_dataset = SpikingDataset(
+            root_dir=self.root_dir,
+            max_time=self.max_time,
+            nb_steps=self.nb_steps,
+            read_csv=False,
+        )
+        dev_dataset = SpikingDataset(
+            root_dir=self.root_dir,
+            max_time=self.max_time,
+            nb_steps=self.nb_steps,
+            read_csv=False,
+        )
+        test_dataset = SpikingDataset(
+            root_dir=self.root_dir,
+            max_time=self.max_time,
+            nb_steps=self.nb_steps,
+            read_csv=False,
+        )
+
+        # Combine folder names and labels
+        combined = list(zip(self.folder_names, self.labels))
+
+        # Separate data based on subjects
+        train_data = []
+        dev_data = []
+        test_data = []
+
+        for folder_name, label in combined:
+            subject = folder_name.split("Activity")[0]
+            if subject in train_subjects:
+                train_data.append((folder_name, label))
+            elif subject in test_subjects:
+                test_data.append((folder_name, label))
+            elif subject in dev_subjects:
+                dev_data.append((folder_name, label))
+
+        train_data = self._adjust_to_batch_size(train_data)
+        dev_data = self._adjust_to_batch_size(dev_data)
+        test_data = self._adjust_to_batch_size(test_data)
+
+        # Separate the folder names and labels
+        train_dataset.folder_names, train_dataset.labels = zip(*train_data) if train_data else ([], [])
+        dev_dataset.folder_names, dev_dataset.labels = zip(*dev_data) if dev_data else ([], [])
+        test_dataset.folder_names, test_dataset.labels = zip(*test_data) if test_data else ([], [])
+
+        return train_dataset, dev_dataset, test_dataset
 
     def save_labels(self):
         df = pd.DataFrame(
