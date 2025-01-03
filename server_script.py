@@ -1,5 +1,7 @@
 import argparse
 import zipfile
+
+import torch
 import boto3
 import gdown
 import logging
@@ -65,9 +67,7 @@ if __name__ == "__main__":
 
     # Container environment
     parser.add_argument("--model-dir", type=str, default=os.environ["SM_MODEL_DIR"])
-    parser.add_argument(
-        "--data-dir", type=str, default=os.environ["SM_CHANNEL_TRAINING"]
-    )
+    parser.add_argument("--data-dir", type=str, default=os.environ["SM_CHANNEL_TRAINING"])
 
     # Parse Parameters
     args = parser.parse_args()
@@ -85,23 +85,18 @@ if __name__ == "__main__":
     )
 
     # Splitting the dataset
-    train_dataset, test_dataset = dataset.random_split(
-        test_size=args.test_size, shuffle=True
-    )
+    train_dataset, test_dataset = dataset.random_split(test_size=args.test_size, shuffle=True)
 
     layer_sizes = [dataset.nb_pixels] + args.hidden_layers + [2]
     model = SpikingNN(
         layer_sizes=layer_sizes,
         nb_steps=dataset.nb_steps,
     )
+    model = torch.compile(model)
 
     # Creating DataLoader instances
-    train_loader = SpikingDataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True
-    )
-    test_loader = SpikingDataLoader(
-        test_dataset, batch_size=args.batch_size, shuffle=False
-    )
+    train_loader = SpikingDataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = SpikingDataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     # Train the model
     trainer = Trainer(model=model)
