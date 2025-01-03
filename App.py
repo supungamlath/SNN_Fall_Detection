@@ -1,12 +1,12 @@
+import configparser
 import os
 import streamlit as st
-import json
 
 # Load the config file
-with open("config.json") as f:
-    config = json.load(f)
+config = configparser.ConfigParser()
+config.read("config.txt")
 
-os.environ["root_folder"] = config.get("root_folder")
+os.environ["root_folder"] = config.get("DEFAULT", "root_dir")
 
 st.set_page_config(
     page_title="Fall Detection SNN",
