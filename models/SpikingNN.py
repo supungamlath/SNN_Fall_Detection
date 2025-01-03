@@ -102,12 +102,8 @@ class SpikingReadoutLayer(nn.Module):
 
         weight_scale = 0.2
 
-        self.output_weights = nn.Parameter(
-            torch.empty((self.nb_hidden, self.nb_outputs))
-        )
-        nn.init.normal_(
-            self.output_weights, mean=0.0, std=weight_scale / np.sqrt(self.nb_hidden)
-        )
+        self.output_weights = nn.Parameter(torch.empty((self.nb_hidden, self.nb_outputs)))
+        nn.init.normal_(self.output_weights, mean=0.0, std=weight_scale / np.sqrt(self.nb_hidden))
 
     def forward(self, inputs):
         batch_size = inputs.size(0)
@@ -143,6 +139,7 @@ class SpikingNN(nn.Module):
     ):
         super(SpikingNN, self).__init__()
 
+        self.nb_steps = nb_steps
         self.alpha = float(np.exp(-time_step / tau_syn))
         self.beta = float(np.exp(-time_step / tau_mem))
 
@@ -161,9 +158,7 @@ class SpikingNN(nn.Module):
             )
         self.hidden_layers = nn.ModuleList(hidden_layers)
         # Readout layer
-        self.readout_layer = SpikingReadoutLayer(
-            layer_sizes[-2], layer_sizes[-1], nb_steps, self.alpha, self.beta
-        )
+        self.readout_layer = SpikingReadoutLayer(layer_sizes[-2], layer_sizes[-1], nb_steps, self.alpha, self.beta)
 
         # Move the model to the GPU if available
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

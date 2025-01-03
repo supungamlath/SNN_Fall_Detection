@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+import torch
 
 from models.SpikingNN import SpikingNN
 from models.model import SNN
@@ -68,6 +69,7 @@ with st.expander("Create New Model"):
             tau_mem=tau_mem * 1e-3,
             tau_syn=tau_syn * 1e-3,
         )
+        model = torch.compile(model)
         model.save(os.path.join(models_dir, f"{model_name}.pth"))
         save_params(models_parameters_file, model_params)
         model_files.append(model_name)
