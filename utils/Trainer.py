@@ -13,6 +13,8 @@ class Trainer:
         self.model = model
         self.is_done = False  # Flag to stop training early
         self.early_stopper = EarlyStopping()
+        self.nb_steps = model.nb_steps
+        self.chunk_size = self.nb_steps // 60  # Number of timesteps is split into 60 chunks, 1 chunk per second
 
     def train(
         self,
@@ -24,17 +26,17 @@ class Trainer:
         callback_fn=None,
         stop_early=False,
     ):
+        # TODO : Add model saving/ result saving on epoch feature
+
         optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr, betas=(0.9, 0.999))
         scheduler = StepLR(optimizer, step_size=3, gamma=0.90)
 
         loss_fn = nn.CrossEntropyLoss()
 
-        test_metrics = Metrics()
         train_metrics = Metrics()
+        dev_metrics = Metrics()
         train_metrics_hist = []
-        test_metrics_hist = []
-
-        chunk_size = 3000 // 60
+        dev_metrics_hist = []
 
         for e in range(nb_epochs):
             if self.is_done:
@@ -46,7 +48,7 @@ class Trainer:
                 for x_local, y_local in evaluate_dataloader:
                     with torch.no_grad():
                         output, _ = self.model.forward(x_local.to_dense())
-                        output = output[:, : chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
+                        output = output[:, : self.nb_steps, :].reshape(7, 60, self.chunk_size, 2).mean(dim=2)
 
                         # Get the max value for each second as the prediction
                         y_pred = torch.argmax(output, dim=2)
@@ -54,29 +56,29 @@ class Trainer:
                         # Cross Entropy Loss function expects the input to be of shape (N, C, L)
                         ce_loss = loss_fn(output.permute(0, 2, 1), y_local.long())
 
-                        test_metrics.update(
+                        dev_metrics.update(
                             y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), ce_loss.item()
                         )
 
-                test_metrics_dict = test_metrics.compute()
-                test_metrics_hist.append(test_metrics_dict)
-                print(f"Test metrics : {test_metrics_dict}")
-                test_metrics.reset()
+                dev_metrics_dict = dev_metrics.compute()
+                dev_metrics_hist.append(dev_metrics_dict)
+                print(f"Dev Set Metrics : {dev_metrics_dict}")
+                dev_metrics.reset()
 
-                if stop_early and self.early_stopper(test_metrics_dict["loss"]):
+                if stop_early and self.early_stopper(dev_metrics_dict["loss"]):
                     self.is_done = True
                     print(self.early_stopper.status)
 
             for x_local, y_local in train_dataloader:
                 output, recs = self.model.forward(x_local.to_dense())
                 spk_recs, _ = recs
-                output = output[:, : chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
+                output = output[:, : self.nb_steps, :].reshape(7, 60, self.chunk_size, 2).mean(dim=2)
 
                 # Get the max value for each second as the prediction
                 y_pred = torch.argmax(output, dim=2)
 
-                # Here we set up our regularizer loss
-                # The reg_alpha strength parameter here are merely a guess and there should be ample room for improvement by tuning these parameters.
+                # Calculate regularizer loss
+                # The reg_alpha parameter controls the strength of the regularizer
                 reg_loss = 0
                 for spks in spk_recs:
                     # L1 loss on total number of spikes
@@ -84,7 +86,7 @@ class Trainer:
                     # L2 loss on spikes per neuron
                     reg_loss += reg_alpha * torch.mean(torch.sum(torch.sum(spks, dim=0), dim=0) ** 2)
 
-                # Combine CE loss and the regularizer
+                # Combine cross entropy loss and regularizer loss
                 total_loss = loss_fn(output.permute(0, 2, 1), y_local.long()) + reg_loss
 
                 train_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), total_loss.item())
@@ -97,17 +99,35 @@ class Trainer:
 
             train_metrics_dict = train_metrics.compute()
             train_metrics_hist.append(train_metrics_dict)
-            print(f"Train metrics : {train_metrics_dict}")
+            print(f"Train Set Metrics : {train_metrics_dict}")
 
             train_metrics.reset()
 
             if callback_fn is not None:
                 if evaluate_dataloader is not None:
-                    callback_fn(train_metrics_hist, test_metrics_hist)
+                    callback_fn(train_metrics_hist, dev_metrics_hist)
                 else:
                     callback_fn(train_metrics_hist)
 
-        return train_metrics_hist, test_metrics_hist
+        return train_metrics_hist, dev_metrics_hist
+
+    def test(self, test_dataloader):
+        test_metrics = Metrics()
+        for x_local, y_local in test_dataloader:
+            with torch.no_grad():
+                output, _ = self.model.forward(x_local.to_dense())
+                output = output[:, : self.chunk_size * 60, :].reshape(7, 60, self.chunk_size, 2).mean(dim=2)
+
+                # Get the max value for each second as the prediction
+                y_pred = torch.argmax(output, dim=2)
+
+                # Set the loss to 0 as we are not calculating it here
+                test_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), 0)
+
+        test_metrics_dict = test_metrics.compute()
+        print(f"Dev Set Metrics : {test_metrics_dict}")
+        test_metrics.reset()
+        return test_metrics_dict
 
     def visualize_output(self, dataloader, nb_batches=1):
         batch_counter = 0
