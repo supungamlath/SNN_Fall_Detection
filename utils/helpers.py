@@ -52,13 +52,13 @@ def draw_row_traces(x_local, model, model_params):
     )
 
 
-def print_loss_accuracy(train_metrics_hist, test_metrics_hist=None):
+def print_loss_accuracy(train_metrics_hist, dev_metrics_hist=None):
     st.write(f"Epoch: {len(train_metrics_hist)}")
     train_metrics = train_metrics_hist[-1]
     markdown_str = f"\nTrain Loss: {train_metrics['loss']} \nTrain Set Accuracy: {train_metrics['accuracy']}\n"
-    if test_metrics_hist:
-        test_metrics = test_metrics_hist[-1]
-        markdown_str += f"Test Set Accuracy: {test_metrics['accuracy']}\n"
+    if dev_metrics_hist:
+        dev_metrics = dev_metrics_hist[-1]
+        markdown_str += f"Dev Set Accuracy: {dev_metrics['accuracy']}\n"
     markdown_str = f"```{markdown_str}```"
     st.markdown(markdown_str)
 
@@ -98,11 +98,11 @@ def training_json_to_dataframe(data):
                 record["train_recall_hist"] = [metrics["recall"] for metrics in experiment["train_metrics_hist"]]
                 record["train_f1_score_hist"] = [metrics["f1_score"] for metrics in experiment["train_metrics_hist"]]
                 record["train_loss_hist"] = [metrics["loss"] for metrics in experiment["train_metrics_hist"]]
-            if "test_metrics_hist" in experiment:
-                record["test_accuracy_hist"] = [metrics["accuracy"] for metrics in experiment["test_metrics_hist"]]
-                record["test_precision_hist"] = [metrics["precision"] for metrics in experiment["test_metrics_hist"]]
-                record["test_recall_hist"] = [metrics["recall"] for metrics in experiment["test_metrics_hist"]]
-                record["test_f1_score_hist"] = [metrics["f1_score"] for metrics in experiment["test_metrics_hist"]]
+            if "dev_metrics_hist" in experiment:
+                record["test_accuracy_hist"] = [metrics["accuracy"] for metrics in experiment["dev_metrics_hist"]]
+                record["test_precision_hist"] = [metrics["precision"] for metrics in experiment["dev_metrics_hist"]]
+                record["test_recall_hist"] = [metrics["recall"] for metrics in experiment["dev_metrics_hist"]]
+                record["test_f1_score_hist"] = [metrics["f1_score"] for metrics in experiment["dev_metrics_hist"]]
             records.append(record)
     df = pd.DataFrame(records)
     return df
