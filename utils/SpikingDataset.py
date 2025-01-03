@@ -9,8 +9,8 @@ class SpikingDataset(Dataset):
     def __init__(
         self,
         root_dir,
-        max_time=15.0,
-        nb_steps=1000,
+        max_time=60.0,
+        nb_steps=3000,
         read_csv=True,
     ):
         self.root_dir = root_dir
