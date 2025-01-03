@@ -11,8 +11,8 @@ from utils.visualization import plot_voltage_traces
 class Trainer:
     def __init__(self, model):
         self.model = model
+        self.is_done = False  # Flag to stop training early
         self.early_stopper = EarlyStopping()
-        self.is_done = False
 
     def train(
         self,
@@ -29,63 +29,51 @@ class Trainer:
 
         loss_fn = nn.CrossEntropyLoss()
 
-        loss_hist = []
+        test_metrics = Metrics()
+        train_metrics = Metrics()
         train_metrics_hist = []
         test_metrics_hist = []
 
-        for e in range(nb_epochs):
-            local_loss = []
-            train_y_true = []
-            train_y_pred = []
+        chunk_size = 3000 // 60
 
+        for e in range(nb_epochs):
             if self.is_done:
                 break
 
             print(f"Epoch: {e + 1}")
 
             if evaluate_dataloader is not None:
-                test_y_true = []
-                test_y_pred = []
-                test_loss = []
                 for x_local, y_local in evaluate_dataloader:
                     with torch.no_grad():
                         output, _ = self.model.forward(x_local.to_dense())
-                        chunk_size = 3000 // 60
-                        output = output[:, :chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
+                        output = output[:, : chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
 
-                        # Arrays for calculating test metrics
-                        y_true = y_local.long()
-                        y_pred = torch.sigmoid(output)
+                        # Get the max value for each second as the prediction
+                        y_pred = torch.argmax(output, dim=2)
 
-                        # Aggregate results
-                        bce_loss = loss_fn(output.permute(0, 2, 1), y_true)
-                        test_loss.append(bce_loss.item())
-                        test_y_true.extend(y_true.cpu().detach().numpy())
-                        test_y_pred.extend(y_pred.cpu().detach().numpy())
+                        # Cross Entropy Loss function expects the input to be of shape (N, C, L)
+                        ce_loss = loss_fn(output.permute(0, 2, 1), y_local.long())
 
-                mean_test_loss = np.mean(test_loss)
-                test_metrics = self.compute_metrics(test_y_pred, test_y_true)
-                test_metrics["loss"] = mean_test_loss
-                test_metrics_hist.append(test_metrics)
-                print(f"Test metrics : {test_metrics}")
+                        test_metrics.update(
+                            y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), ce_loss.item()
+                        )
 
-                if stop_early and self.early_stopper(mean_test_loss):
+                test_metrics_dict = test_metrics.compute()
+                test_metrics_hist.append(test_metrics_dict)
+                print(f"Test metrics : {test_metrics_dict}")
+                test_metrics.reset()
+
+                if stop_early and self.early_stopper(test_metrics_dict["loss"]):
                     self.is_done = True
                     print(self.early_stopper.status)
 
             for x_local, y_local in train_dataloader:
                 output, recs = self.model.forward(x_local.to_dense())
                 spk_recs, _ = recs
-                chunk_size = 3000 // 60
-                output = output[:, :chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
+                output = output[:, : chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
 
-                # Arrays for calculating train metrics
-                y_true = y_local.long()
-                y_pred = torch.sigmoid(output)
-
-                # Aggregate results
-                train_y_true.extend(y_true.cpu().detach().numpy())
-                train_y_pred.extend(y_pred.cpu().detach().numpy())
+                # Get the max value for each second as the prediction
+                y_pred = torch.argmax(output, dim=2)
 
                 # Here we set up our regularizer loss
                 # The reg_alpha strength parameter here are merely a guess and there should be ample room for improvement by tuning these parameters.
@@ -96,23 +84,22 @@ class Trainer:
                     # L2 loss on spikes per neuron
                     reg_loss += reg_alpha * torch.mean(torch.sum(torch.sum(spks, dim=0), dim=0) ** 2)
 
-                # Here we combine supervised loss and the regularizer
-                loss_val = loss_fn(output.permute(0, 2, 1), y_true) + reg_loss
+                # Combine CE loss and the regularizer
+                total_loss = loss_fn(output.permute(0, 2, 1), y_local.long()) + reg_loss
+
+                train_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), total_loss.item())
 
                 optimizer.zero_grad()
-                loss_val.backward()
+                total_loss.backward()
                 optimizer.step()
-                local_loss.append(loss_val.item())
 
             scheduler.step()
-            mean_loss = np.mean(local_loss)
-            loss_hist.append(mean_loss)
 
-            train_metrics = self.compute_metrics(train_y_pred, train_y_true)
-            train_metrics["loss"] = mean_loss
-            train_metrics_hist.append(train_metrics)
+            train_metrics_dict = train_metrics.compute()
+            train_metrics_hist.append(train_metrics_dict)
+            print(f"Train metrics : {train_metrics_dict}")
 
-            print(f"Train metrics : {train_metrics}")
+            train_metrics.reset()
 
             if callback_fn is not None:
                 if evaluate_dataloader is not None:
@@ -121,24 +108,6 @@ class Trainer:
                     callback_fn(train_metrics_hist)
 
         return train_metrics_hist, test_metrics_hist
-
-    def compute_metrics(self, y_pred, y_true):
-        # Flatten predictions and true labels for metric calculation
-        y_pred = np.argmax(np.array(y_pred), axis=-1).flatten()
-        y_true = np.array(y_true).flatten()
-
-        # Calculate metrics
-        accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, average="binary")
-        recall = recall_score(y_true, y_pred, average="binary")
-        f1 = f1_score(y_true, y_pred, average="binary")
-
-        return {
-            "accuracy": accuracy,
-            "precision": precision,
-            "recall": recall,
-            "f1_score": f1,
-        }
 
     def visualize_output(self, dataloader, nb_batches=1):
         batch_counter = 0
@@ -157,3 +126,41 @@ class Trainer:
             batch_counter += 1
             if batch_counter == nb_batches:
                 break
+
+
+class Metrics:
+    def __init__(self):
+        self.y_true = []
+        self.y_pred = []
+        self.loss = []
+
+    def update(self, batch_y_pred, batch_y_true, batch_loss):
+        """Update the state with predictions and true labels."""
+        self.y_pred.extend(batch_y_pred)
+        self.y_true.extend(batch_y_true)
+        self.loss.append(batch_loss)
+
+    def compute(self):
+        """Compute metrics based on the current state."""
+        y_pred = np.array(self.y_pred).flatten()
+        y_true = np.array(self.y_true).flatten()
+
+        loss = np.mean(self.loss)
+        accuracy = accuracy_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred, average="binary")
+        recall = recall_score(y_true, y_pred, average="binary")
+        f1 = f1_score(y_true, y_pred, average="binary")
+
+        return {
+            "loss": loss,
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "f1_score": f1,
+        }
+
+    def reset(self):
+        """Reset the internal state."""
+        self.y_true = []
+        self.y_pred = []
+        self.loss = []
