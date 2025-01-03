@@ -51,7 +51,7 @@ class Trainer:
                     with torch.no_grad():
                         output, _ = self.model.forward(x_local.to_dense())
                         chunk_size = 3000 // 60
-                        output = output.reshape(7, 60, chunk_size, 2).mean(dim=2)
+                        output = output[:, :chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
 
                         # Arrays for calculating test metrics
                         y_true = y_local.long()
@@ -77,7 +77,7 @@ class Trainer:
                 output, recs = self.model.forward(x_local.to_dense())
                 spk_recs, _ = recs
                 chunk_size = 3000 // 60
-                output = output.reshape(7, 60, chunk_size, 2).mean(dim=2)
+                output = output[:, :chunk_size * 60, :].reshape(7, 60, chunk_size, 2).mean(dim=2)
 
                 # Arrays for calculating train metrics
                 y_true = y_local.long()
@@ -88,7 +88,7 @@ class Trainer:
                 train_y_pred.extend(y_pred.cpu().detach().numpy())
 
                 # Here we set up our regularizer loss
-                # The reg_alpha strength parameter here are merely a guess and there should be ample room for improvement by tuning these paramters.
+                # The reg_alpha strength parameter here are merely a guess and there should be ample room for improvement by tuning these parameters.
                 reg_loss = 0
                 for spks in spk_recs:
                     # L1 loss on total number of spikes
