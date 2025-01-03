@@ -37,7 +37,7 @@ if model_name:
                 if "train_metrics_hist" in run:
                     live_plot_plotly(
                         [epoch["accuracy"] for epoch in run["train_metrics_hist"]],
-                        [epoch["accuracy"] for epoch in run["test_metrics_hist"]],
+                        [epoch["accuracy"] for epoch in run["dev_metrics_hist"]],
                         title="Model Accuracy",
                         y_label="Accuracy",
                         renderer=st.plotly_chart,
@@ -101,7 +101,7 @@ if model_name:
             model = st.session_state["model"]
             trainer = Trainer(model=model)
 
-            train_metrics_hist, test_metrics_hist = trainer.train(
+            train_metrics_hist, dev_metrics_hist = trainer.train(
                 train_loader,
                 nb_epochs=nb_epochs,
                 lr=learning_rate,
@@ -110,7 +110,7 @@ if model_name:
                 stop_early=early_stopping_option,
             )
             training_params[model_name][-1]["train_metrics_hist"] = train_metrics_hist
-            training_params[model_name][-1]["test_metrics_hist"] = test_metrics_hist
+            training_params[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
             save_params(training_runs_file, training_params)
 
         with st.spinner("Saving the model..."):
@@ -127,7 +127,7 @@ if model_name:
         with col2:
             live_plot_plotly(
                 [epoch["accuracy"] for epoch in train_metrics_hist],
-                [epoch["accuracy"] for epoch in test_metrics_hist],
+                [epoch["accuracy"] for epoch in dev_metrics_hist],
                 title="Model Accuracy",
                 y_label="Accuracy",
                 renderer=st.plotly_chart,
