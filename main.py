@@ -92,10 +92,12 @@ save_params(training_records_file, training_records)
 
 
 def save_training_epoch_callback(train_metrics_hist, dev_metrics_hist):
+    print(f"Saving record for epoch {len(train_metrics_hist)}")
     training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
     training_records[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
     save_params(training_records_file, training_records)
     model.save(model_save_file)
+    print(f"Saved record for epoch {len(train_metrics_hist)}")
 
 
 # Train the model
