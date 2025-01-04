@@ -5,7 +5,9 @@ from utils.SpikingDataLoader import SpikingDataLoader
 from utils.SpikingDataset import SpikingDataset
 from utils.Trainer import Trainer
 from utils.visualization import live_plot_plotly
-from utils.helpers import datasets_dirs, load_params, print_loss_accuracy, save_params
+from utils.helpers import get_datasets_dirs, load_params, print_loss_accuracy, save_params
+
+datasets_dirs = get_datasets_dirs()
 
 st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wide")
 

@@ -1,6 +1,8 @@
 import streamlit as st
 from utils.SpikingDataset import SpikingDataset
-from utils.helpers import datasets_dirs, display_video
+from utils.helpers import get_datasets_dirs, display_video
+
+datasets_dirs = get_datasets_dirs()
 
 st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wide")
 

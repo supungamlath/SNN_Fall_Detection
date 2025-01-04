@@ -11,11 +11,12 @@ import torch.nn.functional as F
 
 from utils.visualization import plot_voltage_traces
 
-datasets_dirs = {
-    # "UR Fall Dataset": f"{os.environ['root_folder']}/data/urfd-spiking-dataset-240",
-    "HAR UP Fall Dataset": f"{os.environ['root_folder']}/data/har-up-spiking-dataset-240",
-}
-
+def get_datasets_dirs():
+    datasets_dirs = {
+        # "UR Fall Dataset": f"{os.environ['root_folder']}/data/urfd-spiking-dataset-240",
+        "HAR UP Fall Dataset": f"{os.environ['root_folder']}/data/har-up-spiking-dataset-240",
+    }
+    return datasets_dirs
 
 # Function to display a single video
 def display_video(video_path, trim_time=15):
