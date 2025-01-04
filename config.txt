@@ -11,6 +11,7 @@ tau_syn = 50
 
 [TRAINING]
 save_file = models/saved/training_runs.json
+logs_file = models/saved/training_logs.json
 learning_rate = 0.0002
 nb_epochs = 3
 batch_size = 7

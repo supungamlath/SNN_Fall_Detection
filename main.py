@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import torch
+from torch.profiler import profile, ProfilerActivity
 import configparser
 from datetime import datetime
 
@@ -36,6 +37,7 @@ model_dir = root_folder / config["MODEL"]["save_dir"]
 model_save_file = model_dir / f"{model_name}.pth"
 models_records_file = root_folder / config["MODEL"]["save_file"]
 training_records_file = root_folder / config["TRAINING"]["save_file"]
+training_logs_file = root_folder / config["TRAINING"]["logs_file"]
 
 # Load dataset
 dataset = SpikingDataset(
@@ -60,13 +62,18 @@ model_records[model_name] = {
     "max_time": max_time,
     "batch_size": batch_size,
 }
-model = SpikingNN(
-    layer_sizes=[dataset.nb_pixels] + hidden_layers + [2],
-    nb_steps=nb_steps,
-    time_step=max_time / nb_steps,
-    tau_mem=tau_mem * 1e-3,
-    tau_syn=tau_syn * 1e-3,
-)
+
+# Load model if it exists
+if os.path.exists(model_save_file):
+    model = SpikingNN.load(model_save_file)
+else:
+    model = SpikingNN(
+        layer_sizes=[dataset.nb_pixels] + hidden_layers + [2],
+        nb_steps=nb_steps,
+        time_step=max_time / nb_steps,
+        tau_mem=tau_mem * 1e-3,
+        tau_syn=tau_syn * 1e-3,
+    )
 # model = torch.compile(model)
 save_params(models_records_file, model_records)
 
@@ -92,7 +99,6 @@ save_params(training_records_file, training_records)
 
 
 def save_training_epoch_callback(train_metrics_hist, dev_metrics_hist):
-    print(f"Saving record for epoch {len(train_metrics_hist)}")
     training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
     training_records[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
     save_params(training_records_file, training_records)
@@ -102,14 +108,23 @@ def save_training_epoch_callback(train_metrics_hist, dev_metrics_hist):
 
 # Train the model
 trainer = Trainer(model=model)
-train_metrics_hist, dev_metrics_hist = trainer.train(
-    train_loader,
-    nb_epochs=nb_epochs,
-    lr=learning_rate,
-    evaluate_dataloader=dev_loader,
-    stop_early=True,
-    callback_fn=save_training_epoch_callback,
-)
+with profile(
+    activities=[
+        ProfilerActivity.CPU,
+        ProfilerActivity.CUDA,
+    ],
+    record_shapes=True,
+    profile_memory=True,
+) as profiler:
+    train_metrics_hist, dev_metrics_hist = trainer.train(
+        train_loader,
+        nb_epochs=nb_epochs,
+        lr=learning_rate,
+        evaluate_dataloader=dev_loader,
+        stop_early=True,
+        callback_fn=save_training_epoch_callback,
+    )
+    profiler.export_chrome_trace(training_logs_file)
 
 # Test the model
 test_metrics_dict = trainer.test(test_loader)
