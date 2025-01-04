@@ -1,6 +1,7 @@
-from datetime import datetime
+import os
 import torch
 import configparser
+from datetime import datetime
 
 from models.SpikingNN import SpikingNN
 from utils.SpikingDataset import SpikingDataset
@@ -28,7 +29,7 @@ max_time = float(config["DATASET"]["max_time"])
 nb_steps = int(config["DATASET"]["nb_steps"])
 
 # Define root folder and paths
-root_folder = config["DEFAULT"]["root_dir"]
+root_folder = config["DEFAULT"]["root_dir"] or os.getcwd()
 models_records_file = f"{root_folder}{config['MODEL']['save_file']}"
 training_records_file = f"{root_folder}{config['TRAINING']['save_file']}"
 dataset_dir = f"{root_folder}{config['DATASET']['data_dir']}"
@@ -64,7 +65,7 @@ model = SpikingNN(
     tau_mem=tau_mem * 1e-3,
     tau_syn=tau_syn * 1e-3,
 )
-model = torch.compile(model)
+# model = torch.compile(model)
 save_params(models_records_file, model_records)
 
 # Creating DataLoader instances
