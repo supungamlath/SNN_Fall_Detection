@@ -14,6 +14,9 @@ config.read("config.txt")
 
 # Read model parameters
 model_name = config["MODEL"]["name"]
+hidden_layers = list(map(int, config["MODEL"]["hidden_layers"].split(",")))
+tau_mem = float(config["MODEL"]["tau_mem"])
+tau_syn = float(config["MODEL"]["tau_syn"])
 
 # Read training parameters
 learning_rate = float(config["TRAINING"]["learning_rate"])
@@ -26,7 +29,8 @@ nb_steps = int(config["DATASET"]["nb_steps"])
 
 # Define root folder and paths
 root_folder = config["DEFAULT"]["root_dir"]
-training_runs_file = f"{root_folder}{config['TRAINING']['save_file']}"
+models_records_file = f"{root_folder}{config['MODEL']['save_file']}"
+training_records_file = f"{root_folder}{config['TRAINING']['save_file']}"
 dataset_dir = f"{root_folder}{config['DATASET']['data_dir']}"
 model_dir = f"{root_folder}{config['MODEL']['save_dir']}"
 
@@ -40,28 +44,40 @@ dataset = SpikingDataset(
 # Splitting the dataset
 train_dataset, dev_dataset, test_dataset = dataset.split_by_subjects()
 
+# Load existing model parameters
+model_records = load_params(models_records_file)
+
 # Creating the model
+model_records[model_name] = {
+    "snn_layers": [dataset.nb_pixels] + hidden_layers + [2],
+    "nb_steps": nb_steps,
+    "time_step": max_time / nb_steps,
+    "tau_mem": tau_mem * 1e-3,
+    "tau_syn": tau_syn * 1e-3,
+    "max_time": max_time,
+    "batch_size": batch_size,
+}
 model = SpikingNN(
-    layer_sizes=[dataset.nb_pixels, 2000, 2],
-    nb_steps=dataset.nb_steps,
+    layer_sizes=[dataset.nb_pixels] + hidden_layers + [2],
+    nb_steps=nb_steps,
+    time_step=max_time / nb_steps,
+    tau_mem=tau_mem * 1e-3,
+    tau_syn=tau_syn * 1e-3,
 )
 model = torch.compile(model)
+save_params(models_records_file, model_records)
 
 # Creating DataLoader instances
 train_loader = SpikingDataLoader(train_dataset, batch_size=batch_size, shuffle=False)
 dev_loader = SpikingDataLoader(dev_dataset, batch_size=batch_size, shuffle=False)
 test_loader = SpikingDataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-# Load the model
-# model = SpikingNN.load(f"{root_folder}/models/saved/model_v5.pth")
-# model.eval()
+# Load training record
+training_records = load_params(training_records_file)
 
-# Load previous training runs
-training_params = load_params(training_runs_file)
-
-if model_name not in training_params:
-    training_params[model_name] = []
-training_params[model_name].append(
+if model_name not in training_records:
+    training_records[model_name] = []
+training_records[model_name].append(
     {
         "datetime": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
         "dataset": config["DATASET"]["name"],
@@ -69,7 +85,7 @@ training_params[model_name].append(
         "learning_rate": learning_rate,
     }
 )
-save_params(training_runs_file, training_params)
+save_params(training_records_file, training_records)
 
 # Train the model
 trainer = Trainer(model=model)
@@ -80,9 +96,9 @@ train_metrics_hist, dev_metrics_hist = trainer.train(
     evaluate_dataloader=dev_loader,
     stop_early=True,
 )
-training_params[model_name][-1]["train_metrics_hist"] = train_metrics_hist
-training_params[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
-save_params(training_runs_file, training_params)
+training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
+training_records[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
+save_params(training_records_file, training_records)
 
 # Test the model
 test_metrics_dict = trainer.test(test_loader)

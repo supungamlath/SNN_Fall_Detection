@@ -4,6 +4,10 @@ root_dir = E:/Projects/PythonProjects/SNN
 [MODEL]
 name = model_v4
 save_dir = /models/saved
+save_file = /models/saved/models.json
+hidden_layers = 2000
+tau_mem = 100
+tau_syn = 50
 
 [TRAINING]
 save_file = /models/saved/training_runs.json
