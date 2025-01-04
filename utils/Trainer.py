@@ -5,7 +5,6 @@ from torch.optim.lr_scheduler import StepLR
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 from utils.helpers import EarlyStopping
-from utils.visualization import plot_voltage_traces
 
 
 class Trainer:
@@ -26,8 +25,6 @@ class Trainer:
         callback_fn=None,
         stop_early=False,
     ):
-        # TODO : Add model saving/ result saving on epoch feature
-
         optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr, betas=(0.9, 0.999))
         scheduler = StepLR(optimizer, step_size=3, gamma=0.90)
 
@@ -128,24 +125,6 @@ class Trainer:
         print(f"Dev Set Metrics : {test_metrics_dict}")
         test_metrics.reset()
         return test_metrics_dict
-
-    def visualize_output(self, dataloader, nb_batches=1):
-        batch_counter = 0
-        for x_local, y_local in dataloader:
-            output, _ = self.model.forward(x_local.to_dense())
-            two_maxims, _ = torch.max(output, 1)  # max over time
-            _, model_preds = torch.max(two_maxims, 1)  # argmax over output units
-            diff = torch.abs(two_maxims[:, 0] - two_maxims[:, 1])
-            plot_voltage_traces(
-                mem=output.detach().cpu().numpy(),
-                diff=diff.detach().cpu().numpy(),
-                labels=model_preds.detach().cpu().tolist(),
-                dim=(1, x_local.size(0)),
-            )
-
-            batch_counter += 1
-            if batch_counter == nb_batches:
-                break
 
 
 class Metrics:

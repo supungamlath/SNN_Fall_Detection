@@ -115,6 +115,3 @@ train_metrics_hist, dev_metrics_hist = trainer.train(
 test_metrics_dict = trainer.test(test_loader)
 training_records[model_name][-1]["test_metrics"] = test_metrics_dict
 save_params(training_records_file, training_records)
-
-# Visualize the output spikes
-# trainer.visualize_output(test_loader, 1)
