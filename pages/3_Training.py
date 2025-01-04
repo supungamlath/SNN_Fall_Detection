@@ -12,18 +12,18 @@ st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wi
 st.write("# Training")
 
 # Define the directory where the previous training runs are stored
-training_runs_file = f"{os.environ['root_folder']}/models/saved/training_runs.json"
+training_records_file = f"{os.environ['root_folder']}/models/saved/training_runs.json"
 
 # Load previous training runs
-training_params = load_params(training_runs_file)
+training_records = load_params(training_records_file)
 
 model_name = st.session_state.get("model_name", None)
 st.write(f"### Selected Model: {model_name}")
 
 if model_name:
     with st.expander("Previous Training Runs"):
-        if model_name in training_params:
-            previous_training_runs = training_params[model_name]
+        if model_name in training_records:
+            previous_training_runs = training_records[model_name]
             for run in previous_training_runs:
                 st.write(f"Training Run - {run['datetime']}")
                 params_string = (
@@ -47,7 +47,7 @@ if model_name:
 
                 if st.button("Delete Training Run", key=run["datetime"]):
                     previous_training_runs.remove(run)
-                    save_params(training_runs_file, training_params)
+                    save_params(training_records_file, training_records)
                 st.divider()
         else:
             st.write("No training runs yet.")
@@ -79,9 +79,9 @@ if model_name:
 
     if st.button("Start Training Run", type="primary", disabled=start_training_disabled):
 
-        if model_name not in training_params:
-            training_params[model_name] = []
-        training_params[model_name].append(
+        if model_name not in training_records:
+            training_records[model_name] = []
+        training_records[model_name].append(
             {
                 "datetime": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
                 "dataset": selected_dataset,
@@ -90,7 +90,7 @@ if model_name:
                 "learning_rate": learning_rate,
             }
         )
-        save_params(training_runs_file, training_params)
+        save_params(training_records_file, training_records)
 
         with st.spinner("Loading datasets..."):
             train_dataset, test_dataset = dataset.random_split(test_size=train_test_ratio, shuffle=True)
@@ -109,9 +109,9 @@ if model_name:
                 callback_fn=print_loss_accuracy,
                 stop_early=early_stopping_option,
             )
-            training_params[model_name][-1]["train_metrics_hist"] = train_metrics_hist
-            training_params[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
-            save_params(training_runs_file, training_params)
+            training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
+            training_records[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
+            save_params(training_records_file, training_records)
 
         with st.spinner("Saving the model..."):
             model.save(f"{os.environ['root_folder']}/models/saved/{model_name}.pth")

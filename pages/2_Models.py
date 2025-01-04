@@ -12,11 +12,11 @@ st.write("# Models")
 
 # Define the directory where the models and their parameters are stored
 models_dir = f"{os.environ['root_folder']}/models/saved"
-models_parameters_file = os.path.join(models_dir, "models.json")
+models_records_file = os.path.join(models_dir, "models.json")
 training_runs_file = os.path.join(models_dir, "training_runs.json")
 
 # Load existing model parameters
-model_params = load_params(models_parameters_file)
+model_records = load_params(models_records_file)
 model_files = [f[:-4] for f in os.listdir(models_dir) if f.endswith(".pth")]
 
 with st.expander("Create New Model"):
@@ -54,7 +54,7 @@ with st.expander("Create New Model"):
 
     # Button to create a new model
     if st.button("Save Model"):
-        model_params[model_name] = {
+        model_records[model_name] = {
             "snn_layers": snn_layers,
             "nb_steps": nb_steps,
             "time_step": time_step,
@@ -72,7 +72,7 @@ with st.expander("Create New Model"):
         )
         model = torch.compile(model)
         model.save(os.path.join(models_dir, f"{model_name}.pth"))
-        save_params(models_parameters_file, model_params)
+        save_params(models_records_file, model_records)
         model_files.append(model_name)
         st.success(f"Model {model_name} saved successfully.")
 
@@ -81,10 +81,10 @@ selected_model = st.selectbox("Select a saved model:", model_files, index=len(mo
 
 # Display model parameters before loading
 if selected_model:
-    if selected_model in model_params:
+    if selected_model in model_records:
         st.write(f"Model Parameters for {selected_model}")
         params_string = "\n"
-        for k, v in model_params[selected_model].items():
+        for k, v in model_records[selected_model].items():
             params_string += f"{k}: {v} \n"
         params_string = f"```{params_string}```"
         st.markdown(params_string)
@@ -101,7 +101,7 @@ with cols[0]:
             st.session_state["model_name"] = selected_model
             with st.spinner("Loading model..."):
                 st.session_state["model"] = SNN.load(model_path)
-                st.session_state["model_params"] = model_params[selected_model]
+                st.session_state["model_params"] = model_records[selected_model]
             st.success(f"Model {selected_model} loaded successfully.")
         else:
             st.error("Please select a model to load.")
@@ -111,9 +111,9 @@ with cols[1]:
         if selected_model:
             model_files.remove(selected_model)
             os.remove(os.path.join(models_dir, selected_model + ".pth"))
-            if selected_model in model_params:
-                del model_params[selected_model]
-                save_params(models_parameters_file, model_params)
+            if selected_model in model_records:
+                del model_records[selected_model]
+                save_params(models_records_file, model_records)
             training_runs = load_params(training_runs_file)
             if selected_model in training_runs:
                 del training_runs[selected_model]
