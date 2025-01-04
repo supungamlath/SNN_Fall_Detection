@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import torch
 import configparser
 from datetime import datetime
@@ -28,13 +29,13 @@ batch_size = int(config["TRAINING"]["batch_size"])
 max_time = float(config["DATASET"]["max_time"])
 nb_steps = int(config["DATASET"]["nb_steps"])
 
-# Define folder and file paths
-root_folder = config["DEFAULT"]["root_dir"] or os.getcwd()
-dataset_dir = os.path.join(root_folder, config["DATASET"]["data_dir"])
-model_dir = os.path.join(root_folder, config["MODEL"]["save_dir"])
-model_save_file = os.path.join(model_dir, f"{model_name}.pth")
-models_records_file = os.path.join(root_folder, config["MODEL"]["save_file"])
-training_records_file = os.path.join(root_folder, config["TRAINING"]["save_file"])
+# Define folder and paths
+root_folder = Path(config["DEFAULT"]["root_dir"] or os.getcwd())
+dataset_dir = root_folder / config["DATASET"]["data_dir"]
+model_dir = root_folder / config["MODEL"]["save_dir"]
+model_save_file = model_dir / f"{model_name}.pth"
+models_records_file = root_folder / config["MODEL"]["save_file"]
+training_records_file = root_folder / config["TRAINING"]["save_file"]
 
 # Load dataset
 dataset = SpikingDataset(
