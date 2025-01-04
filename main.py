@@ -28,12 +28,13 @@ batch_size = int(config["TRAINING"]["batch_size"])
 max_time = float(config["DATASET"]["max_time"])
 nb_steps = int(config["DATASET"]["nb_steps"])
 
-# Define root folder and paths
+# Define folder and file paths
 root_folder = config["DEFAULT"]["root_dir"] or os.getcwd()
-models_records_file = f"{root_folder}{config['MODEL']['save_file']}"
-training_records_file = f"{root_folder}{config['TRAINING']['save_file']}"
-dataset_dir = f"{root_folder}{config['DATASET']['data_dir']}"
-model_dir = f"{root_folder}{config['MODEL']['save_dir']}"
+dataset_dir = os.path.join(root_folder, config["DATASET"]["data_dir"])
+model_dir = os.path.join(root_folder, config["MODEL"]["save_dir"])
+model_save_file = os.path.join(model_dir, f"{model_name}.pth")
+models_records_file = os.path.join(root_folder, config["MODEL"]["save_file"])
+training_records_file = os.path.join(root_folder, config["TRAINING"]["save_file"])
 
 # Load dataset
 dataset = SpikingDataset(
@@ -88,6 +89,14 @@ training_records[model_name].append(
 )
 save_params(training_records_file, training_records)
 
+
+def save_training_epoch_callback(train_metrics_hist, dev_metrics_hist):
+    training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
+    training_records[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
+    save_params(training_records_file, training_records)
+    model.save(model_save_file)
+
+
 # Train the model
 trainer = Trainer(model=model)
 train_metrics_hist, dev_metrics_hist = trainer.train(
@@ -96,16 +105,13 @@ train_metrics_hist, dev_metrics_hist = trainer.train(
     lr=learning_rate,
     evaluate_dataloader=dev_loader,
     stop_early=True,
+    callback_fn=save_training_epoch_callback,
 )
-training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
-training_records[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
-save_params(training_records_file, training_records)
 
 # Test the model
 test_metrics_dict = trainer.test(test_loader)
-
-# Save the model
-model.save(f"{model_dir}/{model_name}.pth")
+training_records[model_name][-1]["test_metrics"] = test_metrics_dict
+save_params(training_records_file, training_records)
 
 # Visualize the output spikes
 # trainer.visualize_output(test_loader, 1)
