@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import torch
 import torch.nn as nn
@@ -40,6 +41,7 @@ class Trainer:
                 break
 
             print(f"Epoch: {e + 1}")
+            epoch_start_time = time.time()  # Start timing the epoch
 
             if evaluate_dataloader is not None:
                 for x_local, y_local in evaluate_dataloader:
@@ -106,6 +108,13 @@ class Trainer:
                 else:
                     callback_fn(train_metrics_hist)
 
+            # End timing the epoch and print the duration
+            epoch_end_time = time.time()
+            epoch_duration = epoch_end_time - epoch_start_time
+            epoch_minutes = int(epoch_duration // 60)
+            epoch_seconds = int(epoch_duration % 60)
+            print(f"Epoch {e + 1} took {epoch_minutes} minutes {epoch_seconds} seconds")
+
         return train_metrics_hist, dev_metrics_hist
 
     def test(self, test_dataloader):
@@ -146,9 +155,9 @@ class Metrics:
 
         loss = np.mean(self.loss)
         accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, average="binary")
-        recall = recall_score(y_true, y_pred, average="binary")
-        f1 = f1_score(y_true, y_pred, average="binary")
+        precision = precision_score(y_true, y_pred, average="binary", zero_division=0)
+        recall = recall_score(y_true, y_pred, average="binary", zero_division=0)
+        f1 = f1_score(y_true, y_pred, average="binary", zero_division=0)
 
         return {
             "loss": loss,
