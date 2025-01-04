@@ -3,7 +3,6 @@ import streamlit as st
 import torch
 
 from models.SpikingNN import SpikingNN
-from models.model import SNN
 from utils.helpers import load_params, save_params
 
 st.set_page_config(page_title="Fall Detection SNN", page_icon="🧊", layout="wide")
@@ -100,7 +99,7 @@ with cols[0]:
 
             st.session_state["model_name"] = selected_model
             with st.spinner("Loading model..."):
-                st.session_state["model"] = SNN.load(model_path)
+                st.session_state["model"] = SpikingNN.load(model_path)
                 st.session_state["model_params"] = model_records[selected_model]
             st.success(f"Model {selected_model} loaded successfully.")
         else:
