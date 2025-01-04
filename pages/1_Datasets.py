@@ -1,6 +1,7 @@
 import streamlit as st
 from utils.SpikingDataset import SpikingDataset
-from utils.helpers import get_datasets_dirs, display_video
+from utils.helpers import get_datasets_dirs
+from utils.streamlit_helpers import display_video
 
 datasets_dirs = get_datasets_dirs()
 

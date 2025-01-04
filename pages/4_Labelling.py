@@ -1,7 +1,8 @@
 import streamlit as st
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.SpikingDataset import SpikingDataset
-from utils.helpers import get_datasets_dirs, display_video, draw_row_traces
+from utils.helpers import get_datasets_dirs
+from utils.streamlit_helpers import display_video, draw_row_traces
 
 datasets_dirs = get_datasets_dirs()
 

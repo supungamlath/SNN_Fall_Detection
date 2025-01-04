@@ -4,8 +4,9 @@ import streamlit as st
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.SpikingDataset import SpikingDataset
 from utils.Trainer import Trainer
+from utils.streamlit_helpers import print_loss_accuracy
 from utils.visualization import live_plot_plotly
-from utils.helpers import get_datasets_dirs, load_params, print_loss_accuracy, save_params
+from utils.helpers import get_datasets_dirs, load_params, save_params
 
 datasets_dirs = get_datasets_dirs()
 
