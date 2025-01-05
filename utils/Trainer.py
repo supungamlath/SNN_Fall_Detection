@@ -22,12 +22,14 @@ class Trainer:
         nb_epochs=10,
         lr=1e-3,
         reg_alpha=2e-6,
+        step_lr_size=3,
+        step_lr_gamma=0.90,
         evaluate_dataloader=None,
         callback_fn=None,
         stop_early=False,
     ):
-        optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr, betas=(0.9, 0.999))
-        scheduler = StepLR(optimizer, step_size=3, gamma=0.90)
+        optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr)
+        scheduler = StepLR(optimizer, step_size=step_lr_size, gamma=step_lr_gamma)
 
         loss_fn = nn.CrossEntropyLoss()
 
@@ -47,7 +49,7 @@ class Trainer:
                 for x_local, y_local in evaluate_dataloader:
                     with torch.no_grad():
                         output, _ = self.model.forward(x_local.to_dense())
-                        output = output[:, : self.nb_steps, :].reshape(7, 60, self.chunk_size, 2).mean(dim=2)
+                        output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
 
                         # Get the max value for each second as the prediction
                         y_pred = torch.argmax(output, dim=2)
@@ -71,7 +73,7 @@ class Trainer:
             for x_local, y_local in train_dataloader:
                 output, recs = self.model.forward(x_local.to_dense())
                 spk_recs, _ = recs
-                output = output[:, : self.nb_steps, :].reshape(7, 60, self.chunk_size, 2).mean(dim=2)
+                output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
 
                 # Get the max value for each second as the prediction
                 y_pred = torch.argmax(output, dim=2)
@@ -122,7 +124,7 @@ class Trainer:
         for x_local, y_local in test_dataloader:
             with torch.no_grad():
                 output, _ = self.model.forward(x_local.to_dense())
-                output = output[:, : self.chunk_size * 60, :].reshape(7, 60, self.chunk_size, 2).mean(dim=2)
+                output = output[:, : self.chunk_size * 60, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
 
                 # Get the max value for each second as the prediction
                 y_pred = torch.argmax(output, dim=2)
