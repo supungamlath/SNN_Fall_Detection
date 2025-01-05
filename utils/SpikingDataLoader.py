@@ -9,7 +9,7 @@ class SpikingDataLoader(DataLoader):
         dataset = args[0]
         self.nb_units = dataset.nb_pixels
         self.time_duration = dataset.time_duration
-        self.nb_steps = dataset.nb_steps
+        self.nb_steps = kwargs["nb_steps"]
         self.frame_width = dataset.frame_width
         self.batch_size = kwargs["batch_size"]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -10,12 +10,10 @@ class SpikingDataset(Dataset):
         self,
         root_dir,
         time_duration=60.0,
-        nb_steps=3000,
         read_csv=True,
     ):
         self.root_dir = root_dir
         self.time_duration = time_duration
-        self.nb_steps = nb_steps
         self.frame_height = 180
         self.frame_width = 240
         self.max_timestamp = time_duration * 1e6
@@ -95,13 +93,11 @@ class SpikingDataset(Dataset):
         train_dataset = SpikingDataset(
             root_dir=self.root_dir,
             time_duration=self.time_duration,
-            nb_steps=self.nb_steps,
             read_csv=False,
         )
         test_dataset = SpikingDataset(
             root_dir=self.root_dir,
             time_duration=self.time_duration,
-            nb_steps=self.nb_steps,
             read_csv=False,
         )
 
@@ -151,19 +147,16 @@ class SpikingDataset(Dataset):
         train_dataset = SpikingDataset(
             root_dir=self.root_dir,
             time_duration=self.time_duration,
-            nb_steps=self.nb_steps,
             read_csv=False,
         )
         dev_dataset = SpikingDataset(
             root_dir=self.root_dir,
             time_duration=self.time_duration,
-            nb_steps=self.nb_steps,
             read_csv=False,
         )
         test_dataset = SpikingDataset(
             root_dir=self.root_dir,
             time_duration=self.time_duration,
-            nb_steps=self.nb_steps,
             read_csv=False,
         )
 

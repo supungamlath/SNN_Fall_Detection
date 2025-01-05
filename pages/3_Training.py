@@ -62,7 +62,6 @@ if model_name:
     dataset = SpikingDataset(
         root_dir=datasets_dirs[selected_dataset],
         time_duration=model_params["time_duration"],
-        nb_steps=model_params["nb_steps"],
     )
 
     train_test_ratio = st.slider("Train/Test Ratio", min_value=0.0, max_value=1.0, value=0.20, step=0.01)
@@ -97,8 +96,12 @@ if model_name:
 
         with st.spinner("Loading datasets..."):
             train_dataset, test_dataset = dataset.random_split(test_size=train_test_ratio, shuffle=True)
-            train_loader = SpikingDataLoader(train_dataset, batch_size=model_params["batch_size"], shuffle=False)
-            test_loader = SpikingDataLoader(test_dataset, batch_size=model_params["batch_size"], shuffle=False)
+            train_loader = SpikingDataLoader(
+                train_dataset, batch_size=model_params["batch_size"], nb_steps=model_params["nb_steps"], shuffle=False
+            )
+            test_loader = SpikingDataLoader(
+                test_dataset, batch_size=model_params["batch_size"], nb_steps=model_params["nb_steps"], shuffle=False
+            )
 
         with st.spinner("Training the model..."):
             model = st.session_state["model"]

@@ -24,9 +24,10 @@ if model_name is not None:
         dataset = SpikingDataset(
             root_dir=datasets_dirs[selected_dataset],
             time_duration=model_params["time_duration"],
-            nb_steps=model_params["nb_steps"],
         )
-        dataloader = SpikingDataLoader(dataset, batch_size=model_params["batch_size"], shuffle=False)
+        dataloader = SpikingDataLoader(
+            dataset, batch_size=model_params["batch_size"], nb_steps=model_params["nb_steps"], shuffle=False
+        )
 
     with st.form("checkbox_form", clear_on_submit=False):
         # Create columns for displaying videos in a grid
