@@ -5,18 +5,17 @@ from torch.utils.data import DataLoader
 
 # Custom DataLoader that uses a sparse_data_generator as the collate function
 class SpikingDataLoader(DataLoader):
-    def __init__(self, *args, **kwargs):
-        dataset = args[0]
+    def __init__(self, dataset, nb_steps, *args, **kwargs):
         self.nb_units = dataset.nb_pixels
         self.time_duration = dataset.time_duration
-        self.nb_steps = kwargs["nb_steps"]
+        self.nb_steps = nb_steps
         self.frame_width = dataset.frame_width
-        self.batch_size = kwargs["batch_size"]
+        self.batch_size = kwargs.get("batch_size")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print("Initializing DataLoader using device:", self.device)
 
         kwargs["collate_fn"] = self.sparse_data_generator
-        super().__init__(*args, **kwargs)
+        super().__init__(dataset, *args, **kwargs)
 
     def sparse_data_generator(
         self,
