@@ -23,7 +23,7 @@ if model_name is not None:
     with st.spinner("Loading dataset..."):
         dataset = SpikingDataset(
             root_dir=datasets_dirs[selected_dataset],
-            max_time=model_params["max_time"],
+            time_duration=model_params["time_duration"],
             nb_steps=model_params["nb_steps"],
         )
         dataloader = SpikingDataLoader(dataset, batch_size=model_params["batch_size"], shuffle=False)

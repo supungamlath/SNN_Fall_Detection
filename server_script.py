@@ -80,7 +80,7 @@ if __name__ == "__main__":
     )
     dataset = SpikingDataset(
         root_dir=dataset_dir,
-        max_time=15.0,
+        time_duration=15.0,
         nb_steps=1000,
     )
 

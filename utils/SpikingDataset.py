@@ -9,16 +9,16 @@ class SpikingDataset(Dataset):
     def __init__(
         self,
         root_dir,
-        max_time=60.0,
+        time_duration=60.0,
         nb_steps=3000,
         read_csv=True,
     ):
         self.root_dir = root_dir
-        self.max_time = max_time
+        self.time_duration = time_duration
         self.nb_steps = nb_steps
         self.frame_height = 180
         self.frame_width = 240
-        self.max_timestamp = max_time * 1e6
+        self.max_timestamp = time_duration * 1e6
         self.nb_pixels = self.frame_height * self.frame_width
         self.scaling_factor = 1.57
 
@@ -94,13 +94,13 @@ class SpikingDataset(Dataset):
     def random_split(self, test_size=0.25, shuffle=True):
         train_dataset = SpikingDataset(
             root_dir=self.root_dir,
-            max_time=self.max_time,
+            time_duration=self.time_duration,
             nb_steps=self.nb_steps,
             read_csv=False,
         )
         test_dataset = SpikingDataset(
             root_dir=self.root_dir,
-            max_time=self.max_time,
+            time_duration=self.time_duration,
             nb_steps=self.nb_steps,
             read_csv=False,
         )
@@ -150,19 +150,19 @@ class SpikingDataset(Dataset):
 
         train_dataset = SpikingDataset(
             root_dir=self.root_dir,
-            max_time=self.max_time,
+            time_duration=self.time_duration,
             nb_steps=self.nb_steps,
             read_csv=False,
         )
         dev_dataset = SpikingDataset(
             root_dir=self.root_dir,
-            max_time=self.max_time,
+            time_duration=self.time_duration,
             nb_steps=self.nb_steps,
             read_csv=False,
         )
         test_dataset = SpikingDataset(
             root_dir=self.root_dir,
-            max_time=self.max_time,
+            time_duration=self.time_duration,
             nb_steps=self.nb_steps,
             read_csv=False,
         )

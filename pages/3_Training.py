@@ -61,7 +61,7 @@ if model_name:
     model_params = st.session_state["model_params"]
     dataset = SpikingDataset(
         root_dir=datasets_dirs[selected_dataset],
-        max_time=model_params["max_time"],
+        time_duration=model_params["time_duration"],
         nb_steps=model_params["nb_steps"],
     )
 

@@ -19,5 +19,5 @@ batch_size = 7
 [DATASET]
 name = HAR UP Fall Dataset
 data_dir = data/har-up-spiking-dataset-240
-max_time = 60.0
+time_duration = 60.0
 nb_steps = 3000

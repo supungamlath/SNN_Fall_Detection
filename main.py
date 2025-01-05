@@ -1,3 +1,4 @@
+from clearml import Task
 import os
 from pathlib import Path
 import torch
@@ -10,6 +11,9 @@ from utils.SpikingDataset import SpikingDataset
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.Trainer import Trainer
 from utils.helpers import load_params, save_params
+
+# Init ClearML project
+task = Task.init(project_name="NeuroFall", task_name="model_training")
 
 # Load configuration
 config = configparser.ConfigParser()
@@ -27,7 +31,7 @@ nb_epochs = int(config["TRAINING"]["nb_epochs"])
 batch_size = int(config["TRAINING"]["batch_size"])
 
 # Read dataset parameters
-max_time = float(config["DATASET"]["max_time"])
+time_duration = float(config["DATASET"]["time_duration"])
 nb_steps = int(config["DATASET"]["nb_steps"])
 
 # Define folder and paths
@@ -42,7 +46,7 @@ training_logs_file = root_folder / config["TRAINING"]["logs_file"]
 # Load dataset
 dataset = SpikingDataset(
     root_dir=dataset_dir,
-    max_time=max_time,
+    time_duration=time_duration,
     nb_steps=nb_steps,
 )
 
@@ -56,10 +60,10 @@ model_records = load_params(models_records_file)
 model_records[model_name] = {
     "snn_layers": [dataset.nb_pixels] + hidden_layers + [2],
     "nb_steps": nb_steps,
-    "time_step": max_time / nb_steps,
+    "time_step": time_duration / nb_steps,
     "tau_mem": tau_mem * 1e-3,
     "tau_syn": tau_syn * 1e-3,
-    "max_time": max_time,
+    "time_duration": time_duration,
     "batch_size": batch_size,
 }
 
@@ -70,7 +74,7 @@ else:
     model = SpikingNN(
         layer_sizes=[dataset.nb_pixels] + hidden_layers + [2],
         nb_steps=nb_steps,
-        time_step=max_time / nb_steps,
+        time_step=time_duration / nb_steps,
         tau_mem=tau_mem * 1e-3,
         tau_syn=tau_syn * 1e-3,
     )

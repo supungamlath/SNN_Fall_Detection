@@ -8,7 +8,7 @@ class SpikingDataLoader(DataLoader):
     def __init__(self, *args, **kwargs):
         dataset = args[0]
         self.nb_units = dataset.nb_pixels
-        self.max_time = dataset.max_time
+        self.time_duration = dataset.time_duration
         self.nb_steps = dataset.nb_steps
         self.frame_width = dataset.frame_width
         self.batch_size = kwargs["batch_size"]
@@ -22,7 +22,7 @@ class SpikingDataLoader(DataLoader):
         self,
         batch,
     ):
-        time_bins = np.linspace(0, self.max_time, num=self.nb_steps)
+        time_bins = np.linspace(0, self.time_duration, num=self.nb_steps)
 
         coo = [[] for _ in range(3)]
         labels = []
@@ -40,9 +40,9 @@ class SpikingDataLoader(DataLoader):
         i = torch.LongTensor(coo).to(self.device)
         v = torch.FloatTensor(np.ones(len(coo[0]))).to(self.device)
 
-        X_batch = torch.sparse_coo_tensor(
-            i, v, torch.Size([self.batch_size, self.nb_steps, self.nb_units])
-        ).to(self.device)
+        X_batch = torch.sparse_coo_tensor(i, v, torch.Size([self.batch_size, self.nb_steps, self.nb_units])).to(
+            self.device
+        )
         y_batch = torch.tensor(labels).to(self.device)
 
         return X_batch.to(device=self.device), y_batch.to(device=self.device)
