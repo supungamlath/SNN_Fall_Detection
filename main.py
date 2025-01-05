@@ -3,7 +3,7 @@ from pathlib import Path
 from torch.profiler import profile, ProfilerActivity
 import configparser
 from datetime import datetime
-from clearml import Task
+from clearml import Dataset, Task
 
 from models.SpikingNN import SpikingNN
 from utils.SpikingDataset import SpikingDataset
@@ -13,7 +13,7 @@ from utils.clearml_helpers import report_metrics
 from utils.helpers import load_params, save_params
 
 # Init ClearML project
-task = Task.init(project_name="NeuroFall", task_name="model_training")
+task = Task.init(project_name="NeuroFall", task_name="model_training", output_uri=True)
 
 # Load configuration
 config = configparser.ConfigParser()
@@ -27,7 +27,7 @@ model_params = {
     "tau_syn": float(config["MODEL"]["tau_syn"]),
     "nb_steps": int(config["MODEL"]["nb_steps"]),
 }
-task.connect(model_params)
+task.connect(model_params, name="Model Parameters")
 
 # Read training parameters
 training_params = {
@@ -38,7 +38,7 @@ training_params = {
     "nb_epochs": int(config["TRAINING"]["nb_epochs"]),
     "batch_size": int(config["TRAINING"]["batch_size"]),
 }
-task.connect(training_params)
+task.connect(training_params, name="Training Parameters")
 
 # Read dataset parameters
 time_duration = float(config["DATASET"]["time_duration"])
@@ -51,6 +51,13 @@ model_save_file = model_dir / f"{model_name}.pth"
 models_records_file = root_folder / config["MODEL"]["save_file"]
 training_records_file = root_folder / config["TRAINING"]["save_file"]
 training_logs_file = root_folder / config["TRAINING"]["logs_file"]
+
+# Create directories if they don't exist
+model_dir.mkdir(parents=True, exist_ok=True)
+
+# Download dataset if it doesn't exist
+if not dataset_dir.exists():
+    dataset_dir = Dataset.get(dataset_name="har-up-spiking-dataset-240-min").get_local_copy()
 
 # Load dataset
 dataset = SpikingDataset(
