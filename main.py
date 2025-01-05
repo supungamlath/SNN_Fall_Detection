@@ -58,7 +58,7 @@ model_dir.mkdir(parents=True, exist_ok=True)
 
 # Download dataset if it doesn't exist
 if not dataset_dir.exists():
-    dataset_dir = Dataset.get(dataset_name="har-up-spiking-dataset-240-min").get_local_copy()
+    dataset_dir = Dataset.get(dataset_name="har-up-spiking-dataset-240-min" alias="HAR UP Fall Dataset").get_local_copy()
 
 # Load dataset
 dataset = SpikingDataset(
