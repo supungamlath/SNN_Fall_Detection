@@ -5,19 +5,22 @@ root_dir =
 name = model_v2
 save_dir = models/saved
 save_file = models/saved/models.json
-hidden_layers = 2000
+hidden_layers = 1000
 tau_mem = 100
 tau_syn = 50
+nb_steps = 3000
 
 [TRAINING]
 save_file = models/saved/training_runs.json
 logs_file = models/saved/training_logs.json
 learning_rate = 0.0002
-nb_epochs = 3
+reg_alpha = 2e-6
+step_lr_size = 3
+step_lr_gamma = 1.0
+nb_epochs = 2
 batch_size = 7
 
 [DATASET]
 name = HAR UP Fall Dataset
 data_dir = data/har-up-spiking-dataset-240
 time_duration = 60.0
-nb_steps = 3000

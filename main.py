@@ -1,15 +1,15 @@
-from clearml import Task
 import os
 from pathlib import Path
-import torch
 from torch.profiler import profile, ProfilerActivity
 import configparser
 from datetime import datetime
+from clearml import Task
 
 from models.SpikingNN import SpikingNN
 from utils.SpikingDataset import SpikingDataset
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.Trainer import Trainer
+from utils.clearml_helpers import report_metrics
 from utils.helpers import load_params, save_params
 
 # Init ClearML project
@@ -21,18 +21,27 @@ config.read("config.txt")
 
 # Read model parameters
 model_name = config["MODEL"]["name"]
-hidden_layers = list(map(int, config["MODEL"]["hidden_layers"].split(",")))
-tau_mem = float(config["MODEL"]["tau_mem"])
-tau_syn = float(config["MODEL"]["tau_syn"])
+model_params = {
+    "hidden_layers": list(map(int, config["MODEL"]["hidden_layers"].split(","))),
+    "tau_mem": float(config["MODEL"]["tau_mem"]),
+    "tau_syn": float(config["MODEL"]["tau_syn"]),
+    "nb_steps": int(config["MODEL"]["nb_steps"]),
+}
+task.connect(model_params)
 
 # Read training parameters
-learning_rate = float(config["TRAINING"]["learning_rate"])
-nb_epochs = int(config["TRAINING"]["nb_epochs"])
-batch_size = int(config["TRAINING"]["batch_size"])
+training_params = {
+    "learning_rate": float(config["TRAINING"]["learning_rate"]),
+    "reg_alpha": float(config["TRAINING"]["reg_alpha"]),
+    "step_lr_size": int(config["TRAINING"]["step_lr_size"]),
+    "step_lr_gamma": float(config["TRAINING"]["step_lr_gamma"]),
+    "nb_epochs": int(config["TRAINING"]["nb_epochs"]),
+    "batch_size": int(config["TRAINING"]["batch_size"]),
+}
+task.connect(training_params)
 
 # Read dataset parameters
 time_duration = float(config["DATASET"]["time_duration"])
-nb_steps = int(config["DATASET"]["nb_steps"])
 
 # Define folder and paths
 root_folder = Path(config["DEFAULT"]["root_dir"] or os.getcwd())
@@ -47,7 +56,6 @@ training_logs_file = root_folder / config["TRAINING"]["logs_file"]
 dataset = SpikingDataset(
     root_dir=dataset_dir,
     time_duration=time_duration,
-    nb_steps=nb_steps,
 )
 
 # Splitting the dataset
@@ -58,13 +66,12 @@ model_records = load_params(models_records_file)
 
 # Creating the model
 model_records[model_name] = {
-    "snn_layers": [dataset.nb_pixels] + hidden_layers + [2],
-    "nb_steps": nb_steps,
-    "time_step": time_duration / nb_steps,
-    "tau_mem": tau_mem * 1e-3,
-    "tau_syn": tau_syn * 1e-3,
+    "snn_layers": [dataset.nb_pixels] + model_params["hidden_layers"] + [2],
+    "nb_steps": model_params["nb_steps"],
+    "time_step": time_duration / model_params["nb_steps"],
+    "tau_mem": model_params["tau_mem"] * 1e-3,
+    "tau_syn": model_params["tau_syn"] * 1e-3,
     "time_duration": time_duration,
-    "batch_size": batch_size,
 }
 
 # Load model if it exists
@@ -72,19 +79,25 @@ if os.path.exists(model_save_file):
     model = SpikingNN.load(model_save_file)
 else:
     model = SpikingNN(
-        layer_sizes=[dataset.nb_pixels] + hidden_layers + [2],
-        nb_steps=nb_steps,
-        time_step=time_duration / nb_steps,
-        tau_mem=tau_mem * 1e-3,
-        tau_syn=tau_syn * 1e-3,
+        layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [2],
+        nb_steps=model_params["nb_steps"],
+        time_step=time_duration / model_params["nb_steps"],
+        tau_mem=model_params["tau_mem"] * 1e-3,
+        tau_syn=model_params["tau_syn"] * 1e-3,
     )
 # model = torch.compile(model)
 save_params(models_records_file, model_records)
 
 # Creating DataLoader instances
-train_loader = SpikingDataLoader(train_dataset, batch_size=batch_size, shuffle=False)
-dev_loader = SpikingDataLoader(dev_dataset, batch_size=batch_size, shuffle=False)
-test_loader = SpikingDataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+train_loader = SpikingDataLoader(
+    dataset=train_dataset, nb_steps=model_params["nb_steps"], batch_size=training_params["batch_size"], shuffle=False
+)
+dev_loader = SpikingDataLoader(
+    dataset=dev_dataset, nb_steps=model_params["nb_steps"], batch_size=training_params["batch_size"], shuffle=False
+)
+test_loader = SpikingDataLoader(
+    dataset=test_dataset, nb_steps=model_params["nb_steps"], batch_size=training_params["batch_size"], shuffle=False
+)
 
 # Load training record
 training_records = load_params(training_records_file)
@@ -95,8 +108,8 @@ training_records[model_name].append(
     {
         "datetime": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
         "dataset": config["DATASET"]["name"],
-        "nb_epochs": nb_epochs,
-        "learning_rate": learning_rate,
+        "nb_epochs": training_params["nb_epochs"],
+        "learning_rate": training_params["learning_rate"],
     }
 )
 save_params(training_records_file, training_records)
@@ -107,6 +120,8 @@ def save_training_epoch_callback(train_metrics_hist, dev_metrics_hist):
     training_records[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
     save_params(training_records_file, training_records)
     model.save(model_save_file)
+    report_metrics("train", train_metrics_hist[-1], len(train_metrics_hist))
+    report_metrics("dev", dev_metrics_hist[-1], len(train_metrics_hist))
     print(f"Saved record for epoch {len(train_metrics_hist)}")
 
 
@@ -122,8 +137,11 @@ with profile(
 ) as profiler:
     train_metrics_hist, dev_metrics_hist = trainer.train(
         train_loader,
-        nb_epochs=nb_epochs,
-        lr=learning_rate,
+        nb_epochs=training_params["nb_epochs"],
+        lr=training_params["learning_rate"],
+        reg_alpha=training_params["reg_alpha"],
+        step_lr_size=training_params["step_lr_size"],
+        step_lr_gamma=training_params["step_lr_gamma"],
         evaluate_dataloader=dev_loader,
         stop_early=True,
         callback_fn=save_training_epoch_callback,
@@ -134,3 +152,4 @@ with profile(
 test_metrics_dict = trainer.test(test_loader)
 training_records[model_name][-1]["test_metrics"] = test_metrics_dict
 save_params(training_records_file, training_records)
+report_metrics("test", test_metrics_dict, len(train_metrics_hist))
