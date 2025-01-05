@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-from torch.profiler import profile, ProfilerActivity
+
+# from torch.profiler import profile, ProfilerActivity
 import configparser
 from datetime import datetime
 from clearml import Dataset, Task
@@ -134,26 +135,26 @@ def save_training_epoch_callback(train_metrics_hist, dev_metrics_hist):
 
 # Train the model
 trainer = Trainer(model=model)
-with profile(
-    activities=[
-        ProfilerActivity.CPU,
-        ProfilerActivity.CUDA,
-    ],
-    record_shapes=True,
-    profile_memory=True,
-) as profiler:
-    train_metrics_hist, dev_metrics_hist = trainer.train(
-        train_loader,
-        nb_epochs=training_params["nb_epochs"],
-        lr=training_params["learning_rate"],
-        reg_alpha=training_params["reg_alpha"],
-        step_lr_size=training_params["step_lr_size"],
-        step_lr_gamma=training_params["step_lr_gamma"],
-        evaluate_dataloader=dev_loader,
-        stop_early=True,
-        callback_fn=save_training_epoch_callback,
-    )
-    profiler.export_chrome_trace(training_logs_file)
+# with profile(
+#     activities=[
+#         ProfilerActivity.CPU,
+#         ProfilerActivity.CUDA,
+#     ],
+#     record_shapes=True,
+#     profile_memory=True,
+# ) as profiler:
+train_metrics_hist, dev_metrics_hist = trainer.train(
+    train_loader,
+    nb_epochs=training_params["nb_epochs"],
+    lr=training_params["learning_rate"],
+    reg_alpha=training_params["reg_alpha"],
+    step_lr_size=training_params["step_lr_size"],
+    step_lr_gamma=training_params["step_lr_gamma"],
+    evaluate_dataloader=dev_loader,
+    stop_early=True,
+    callback_fn=save_training_epoch_callback,
+)
+# profiler.export_chrome_trace(training_logs_file)
 
 # Test the model
 test_metrics_dict = trainer.test(test_loader)
