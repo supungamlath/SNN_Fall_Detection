@@ -32,7 +32,7 @@ time_duration = float(config["DATASET"]["time_duration"])
 # Load dataset
 dataset = SpikingDataset(
     root_dir="data/har-up-spiking-dataset-240",
-    time_duration=60.0,
+    time_duration=time_duration,
 )
 
 # Splitting the dataset
