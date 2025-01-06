@@ -184,4 +184,4 @@ class SpikingNN(nn.Module):
 
     @staticmethod
     def load(path):
-        return torch.load(path)
+        return torch.load(path, weights_only=True)
