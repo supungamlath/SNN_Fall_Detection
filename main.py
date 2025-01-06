@@ -141,7 +141,7 @@ def main():
         train_loader,
         nb_epochs=training_params["nb_epochs"],
         lr=training_params["learning_rate"],
-        reg_alpha=training_params["reg_alpha"],
+        regularizer_alpha=training_params["reg_alpha"],
         step_lr_size=training_params["step_lr_size"],
         step_lr_gamma=training_params["step_lr_gamma"],
         evaluate_dataloader=dev_loader,

@@ -105,7 +105,7 @@ if __name__ == "__main__":
         evaluate_dataloader=test_loader,
         nb_epochs=args.epochs,
         lr=args.learning_rate,
-        reg_alpha=args.reg_alpha,
+        regularizer_alpha=args.reg_alpha,
     )
 
     # Save the model

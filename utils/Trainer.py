@@ -21,7 +21,8 @@ class Trainer:
         train_dataloader,
         nb_epochs=10,
         lr=1e-3,
-        reg_alpha=2e-6,
+        regularizer=True,
+        regularizer_alpha=2e-6,
         step_lr_size=3,
         step_lr_gamma=0.90,
         evaluate_dataloader=None,
@@ -45,6 +46,7 @@ class Trainer:
             print(f"Epoch: {e + 1}")
             epoch_start_time = time.time()  # Start timing the epoch
 
+            # Evaluate loop
             if evaluate_dataloader is not None:
                 with torch.inference_mode():
                     for x_local, y_local in evaluate_dataloader:
@@ -74,8 +76,9 @@ class Trainer:
                     self.is_done = True
                     print(self.early_stopper.status)
 
+            # Training loop
             for x_local, y_local in train_dataloader:
-
+                optimizer.zero_grad()  # Clears gradients to prevent accumulation of gradients from multiple backward passes.
                 x_local = x_local.to(self.model.device, self.model.dtype)
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
@@ -89,20 +92,20 @@ class Trainer:
                 # Calculate regularizer loss
                 # The reg_alpha parameter controls the strength of the regularizer
                 reg_loss = 0
-                for spks in spk_recs:
-                    # L1 loss on total number of spikes
-                    reg_loss += reg_alpha * torch.sum(spks)
-                    # L2 loss on spikes per neuron
-                    reg_loss += reg_alpha * torch.mean(torch.sum(torch.sum(spks, dim=0), dim=0) ** 2)
+                if regularizer:
+                    for spks in spk_recs:
+                        # L1 loss on total number of spikes
+                        reg_loss += regularizer_alpha * torch.sum(spks)
+                        # L2 loss on spikes per neuron
+                        reg_loss += regularizer_alpha * torch.mean(torch.sum(torch.sum(spks, dim=0), dim=0) ** 2)
 
                 # Combine cross entropy loss and regularizer loss
                 total_loss = loss_fn(output.permute(0, 2, 1), y_local.long()) + reg_loss
 
                 train_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), total_loss.item())
 
-                optimizer.zero_grad()
-                total_loss.backward()
-                optimizer.step()
+                total_loss.backward()  # Computes gradients of loss_val with respect to model parameters and stores them in the .grad attributes of the parameters.
+                optimizer.step()  # Updates the parameters using the gradients stored in .grad.
 
             scheduler.step()
 
