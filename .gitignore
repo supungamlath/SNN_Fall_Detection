@@ -10,3 +10,6 @@ models/saved/
 
 # Temporary files
 temp/
+
+# Logs
+logs/
