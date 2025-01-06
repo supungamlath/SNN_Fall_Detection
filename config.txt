@@ -18,7 +18,7 @@ step_lr_size = 3
 step_lr_gamma = 1.0
 nb_epochs = 50
 batch_size = 7
-use_regularizer = yes
+use_regularizer = no
 
 [DATASET]
 name = HAR UP Fall Dataset
