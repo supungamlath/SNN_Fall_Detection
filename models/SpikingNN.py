@@ -164,7 +164,7 @@ class SpikingNN(nn.Module):
 
         # Move the model to the GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.dtype = torch.float16
+        self.dtype = torch.float32
         self.to(self.device, self.dtype)
 
     def forward(self, x):
