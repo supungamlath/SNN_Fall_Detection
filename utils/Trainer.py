@@ -46,8 +46,12 @@ class Trainer:
             epoch_start_time = time.time()  # Start timing the epoch
 
             if evaluate_dataloader is not None:
-                for x_local, y_local in evaluate_dataloader:
-                    with torch.no_grad():
+                with torch.inference_mode():
+                    for x_local, y_local in evaluate_dataloader:
+                        
+                        x_local = x_local.to(self.model.device, self.model.dtype)
+                        y_local = y_local.to(self.model.device, self.model.dtype)
+
                         output, _ = self.model.forward(x_local.to_dense())
                         output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
 
@@ -61,16 +65,20 @@ class Trainer:
                             y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), ce_loss.item()
                         )
 
-                dev_metrics_dict = dev_metrics.compute()
-                dev_metrics_hist.append(dev_metrics_dict)
-                print(f"Dev Set Metrics : {dev_metrics_dict}")
-                dev_metrics.reset()
+                    dev_metrics_dict = dev_metrics.compute()
+                    dev_metrics_hist.append(dev_metrics_dict)
+                    print(f"Dev Set Metrics : {dev_metrics_dict}")
+                    dev_metrics.reset()
 
                 if stop_early and self.early_stopper(dev_metrics_dict["loss"]):
                     self.is_done = True
                     print(self.early_stopper.status)
 
             for x_local, y_local in train_dataloader:
+
+                x_local = x_local.to(self.model.device, self.model.dtype)
+                y_local = y_local.to(self.model.device, self.model.dtype)
+
                 output, recs = self.model.forward(x_local.to_dense())
                 spk_recs, _ = recs
                 output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
@@ -92,9 +100,9 @@ class Trainer:
 
                 train_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), total_loss.item())
 
-                optimizer.zero_grad()
                 total_loss.backward()
                 optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
 
             scheduler.step()
 
@@ -121,8 +129,12 @@ class Trainer:
 
     def test(self, test_dataloader):
         test_metrics = Metrics()
-        for x_local, y_local in test_dataloader:
-            with torch.no_grad():
+        with torch.inference_mode():
+            for x_local, y_local in test_dataloader:
+                
+                x_local = x_local.to(self.model.device, self.model.dtype)
+                y_local = y_local.to(self.model.device, self.model.dtype)
+
                 output, _ = self.model.forward(x_local.to_dense())
                 output = output[:, : self.chunk_size * 60, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
 
@@ -132,9 +144,9 @@ class Trainer:
                 # Set the loss to 0 as we are not calculating it here
                 test_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), 0)
 
-        test_metrics_dict = test_metrics.compute()
-        print(f"Dev Set Metrics : {test_metrics_dict}")
-        test_metrics.reset()
+            test_metrics_dict = test_metrics.compute()
+            print(f"Dev Set Metrics : {test_metrics_dict}")
+            test_metrics.reset()
         return test_metrics_dict
 
 
