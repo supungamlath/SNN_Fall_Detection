@@ -48,7 +48,7 @@ class Trainer:
             if evaluate_dataloader is not None:
                 with torch.inference_mode():
                     for x_local, y_local in evaluate_dataloader:
-                        
+
                         x_local = x_local.to(self.model.device, self.model.dtype)
                         y_local = y_local.to(self.model.device, self.model.dtype)
 
@@ -100,9 +100,9 @@ class Trainer:
 
                 train_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), total_loss.item())
 
+                optimizer.zero_grad()
                 total_loss.backward()
                 optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
 
             scheduler.step()
 
@@ -131,7 +131,7 @@ class Trainer:
         test_metrics = Metrics()
         with torch.inference_mode():
             for x_local, y_local in test_dataloader:
-                
+
                 x_local = x_local.to(self.model.device, self.model.dtype)
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
