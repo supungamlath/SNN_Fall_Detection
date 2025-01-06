@@ -96,14 +96,14 @@ def main():
     def evaluate_epoch_callback(dev_metrics, epoch):
         if epoch % 3 == 0:
             model.save(model_save_file)
-        report_metrics("dev", dev_metrics, epoch)
-        print(f"Saved dev record for epoch {epoch}")
+        report_metrics("dev", dev_metrics, epoch + 1)
+        print(f"Saved dev record for epoch {epoch + 1}")
 
     def training_epoch_callback(train_metrics, epoch):
         if epoch % 3 == 0:
             model.save(model_save_file)
-        report_metrics("train", train_metrics, epoch)
-        print(f"Saved train record for epoch {epoch}")
+        report_metrics("train", train_metrics, epoch + 1)
+        print(f"Saved train record for epoch {epoch + 1}")
 
     # Train the model
     trainer = Trainer(model=model)
