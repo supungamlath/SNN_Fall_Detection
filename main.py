@@ -52,7 +52,6 @@ def main():
     model_save_file = model_dir / f"{model_name}.pth"
     models_records_file = root_folder / config["MODEL"]["save_file"]
     training_records_file = root_folder / config["TRAINING"]["save_file"]
-    training_logs_file = root_folder / config["TRAINING"]["logs_file"]
 
     # Create directories if they don't exist
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -100,7 +99,10 @@ def main():
 
     # Creating DataLoader instances
     train_loader = SpikingDataLoader(
-        dataset=train_dataset, nb_steps=model_params["nb_steps"], batch_size=training_params["batch_size"], shuffle=False
+        dataset=train_dataset,
+        nb_steps=model_params["nb_steps"],
+        batch_size=training_params["batch_size"],
+        shuffle=False,
     )
     dev_loader = SpikingDataLoader(
         dataset=dev_dataset, nb_steps=model_params["nb_steps"], batch_size=training_params["batch_size"], shuffle=False
@@ -124,7 +126,6 @@ def main():
     )
     save_params(training_records_file, training_records)
 
-
     def save_training_epoch_callback(train_metrics_hist, dev_metrics_hist):
         training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
         training_records[model_name][-1]["dev_metrics_hist"] = dev_metrics_hist
@@ -133,7 +134,6 @@ def main():
         report_metrics("train", train_metrics_hist[-1], len(train_metrics_hist))
         report_metrics("dev", dev_metrics_hist[-1], len(train_metrics_hist))
         print(f"Saved record for epoch {len(train_metrics_hist)}")
-
 
     # Train the model
     trainer = Trainer(model=model)
@@ -156,5 +156,5 @@ def main():
     report_metrics("test", test_metrics_dict, len(train_metrics_hist))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
