@@ -62,10 +62,11 @@ class SpikingHiddenLayer(nn.Module):
     def forward(self, inputs):
         batch_size = inputs.size(0)
         device = self.w_input.device
+        dtype = self.w_input.dtype
 
-        syn = torch.zeros((batch_size, self.nb_hidden), device=device)
-        mem = torch.zeros((batch_size, self.nb_hidden), device=device)
-        out = torch.zeros((batch_size, self.nb_hidden), device=device)
+        syn = torch.zeros((batch_size, self.nb_hidden), device=device, dtype=dtype)
+        mem = torch.zeros((batch_size, self.nb_hidden), device=device, dtype=dtype)
+        out = torch.zeros((batch_size, self.nb_hidden), device=device, dtype=dtype)
 
         mem_rec = []
         spk_rec = []
@@ -108,9 +109,10 @@ class SpikingReadoutLayer(nn.Module):
     def forward(self, inputs):
         batch_size = inputs.size(0)
         device = self.output_weights.device
+        dtype = self.output_weights.dtype
 
-        flt = torch.zeros((batch_size, self.nb_outputs), device=device)
-        out = torch.zeros((batch_size, self.nb_outputs), device=device)
+        flt = torch.zeros((batch_size, self.nb_outputs), device=device, dtype=dtype)
+        out = torch.zeros((batch_size, self.nb_outputs), device=device, dtype=dtype)
 
         out_rec = [out]
 
@@ -161,8 +163,9 @@ class SpikingNN(nn.Module):
         self.readout_layer = SpikingReadoutLayer(layer_sizes[-2], layer_sizes[-1], nb_steps, self.alpha, self.beta)
 
         # Move the model to the GPU if available
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.to(device, torch.float)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.dtype = torch.float16
+        self.to(self.device, self.dtype)
 
     def forward(self, x):
         # Forward pass through hidden layers
