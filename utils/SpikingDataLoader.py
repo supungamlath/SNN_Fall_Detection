@@ -11,10 +11,11 @@ class SpikingDataLoader(DataLoader):
         self.nb_steps = nb_steps
         self.frame_width = dataset.frame_width
         self.batch_size = kwargs.get("batch_size")
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("Initializing DataLoader using device:", self.device)
+        print(f"Initializing DataLoader of size {len(dataset)}")
 
         kwargs["collate_fn"] = self.sparse_data_generator
+        kwargs["num_workers"] = 4
+        kwargs["pin_memory"] = True
         super().__init__(dataset, *args, **kwargs)
 
     def sparse_data_generator(
@@ -36,12 +37,10 @@ class SpikingDataLoader(DataLoader):
             coo[2].extend(units)
             labels.append(label)
 
-        i = torch.LongTensor(coo).to(self.device)
-        v = torch.FloatTensor(np.ones(len(coo[0]))).to(self.device)
+        i = torch.LongTensor(coo)
+        v = torch.FloatTensor(np.ones(len(coo[0])))
 
-        X_batch = torch.sparse_coo_tensor(i, v, torch.Size([self.batch_size, self.nb_steps, self.nb_units])).to(
-            self.device
-        )
-        y_batch = torch.tensor(labels).to(self.device)
+        X_batch = torch.sparse_coo_tensor(i, v, torch.Size([self.batch_size, self.nb_steps, self.nb_units]))
+        y_batch = torch.tensor(labels)
 
-        return X_batch.to(device=self.device), y_batch.to(device=self.device)
+        return X_batch, y_batch
