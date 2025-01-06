@@ -67,17 +67,13 @@ def main():
     # Splitting the dataset
     train_dataset, dev_dataset, test_dataset = dataset.split_by_subjects(batch_size=training_params["batch_size"])
 
-    # Load model if it exists
-    if os.path.exists(model_save_file):
-        model = SpikingNN.load(model_save_file)
-    else:
-        model = SpikingNN(
-            layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [2],
-            nb_steps=model_params["nb_steps"],
-            time_step=time_duration / model_params["nb_steps"],
-            tau_mem=model_params["tau_mem"] * 1e-3,
-            tau_syn=model_params["tau_syn"] * 1e-3,
-        )
+    model = SpikingNN(
+        layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [2],
+        nb_steps=model_params["nb_steps"],
+        time_step=time_duration / model_params["nb_steps"],
+        tau_mem=model_params["tau_mem"] * 1e-3,
+        tau_syn=model_params["tau_syn"] * 1e-3,
+    )
 
     # Creating DataLoader instances
     train_loader = SpikingDataLoader(
@@ -94,8 +90,6 @@ def main():
     )
 
     def evaluate_epoch_callback(dev_metrics, epoch):
-        if epoch % 3 == 0:
-            model.save(model_save_file)
         report_metrics("dev", dev_metrics, epoch + 1)
         print(f"Saved dev record for epoch {epoch + 1}")
 
