@@ -12,7 +12,7 @@ class Trainer:
     def __init__(self, model):
         self.model = model
         self.is_done = False  # Flag to stop training early
-        self.early_stopper = EarlyStopping()
+        self.early_stopper = EarlyStopping(min_delta=0.0001)
         self.nb_steps = model.nb_steps
         self.chunk_size = self.nb_steps // 60  # Number of timesteps is split into 60 chunks, 1 chunk per second
 
@@ -25,9 +25,10 @@ class Trainer:
         regularizer_alpha=2e-6,
         step_lr_size=3,
         step_lr_gamma=0.90,
-        evaluate_dataloader=None,
-        callback_fn=None,
         stop_early=False,
+        evaluate_dataloader=None,
+        evaluate_callback=None,
+        train_callback=None,
     ):
         optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr)
         scheduler = StepLR(optimizer, step_size=step_lr_size, gamma=step_lr_gamma)
@@ -36,14 +37,12 @@ class Trainer:
 
         train_metrics = Metrics()
         dev_metrics = Metrics()
-        train_metrics_hist = []
-        dev_metrics_hist = []
 
-        for e in range(nb_epochs):
+        for epoch in range(nb_epochs):
             if self.is_done:
                 break
 
-            print(f"Epoch: {e + 1}")
+            print(f"Epoch: {epoch + 1}")
             epoch_start_time = time.time()  # Start timing the epoch
 
             # Evaluate loop
@@ -68,8 +67,9 @@ class Trainer:
                         )
 
                     dev_metrics_dict = dev_metrics.compute()
-                    dev_metrics_hist.append(dev_metrics_dict)
                     print(f"Dev Set Metrics : {dev_metrics_dict}")
+
+                    evaluate_callback and evaluate_callback(dev_metrics_dict, epoch)
                     dev_metrics.reset()
 
                 if stop_early and self.early_stopper(dev_metrics_dict["loss"]):
@@ -104,31 +104,23 @@ class Trainer:
 
                 train_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), total_loss.item())
 
-                total_loss.backward()  # Computes gradients of loss_val with respect to model parameters and stores them in the .grad attributes of the parameters.
+                total_loss.backward()  # Computes gradients and stores them in the .grad attributes of the parameters.
                 optimizer.step()  # Updates the parameters using the gradients stored in .grad.
 
             scheduler.step()
 
             train_metrics_dict = train_metrics.compute()
-            train_metrics_hist.append(train_metrics_dict)
             print(f"Train Set Metrics : {train_metrics_dict}")
 
+            train_callback and train_callback(train_metrics_dict, epoch)
             train_metrics.reset()
-
-            if callback_fn is not None:
-                if evaluate_dataloader is not None:
-                    callback_fn(train_metrics_hist, dev_metrics_hist)
-                else:
-                    callback_fn(train_metrics_hist)
 
             # End timing the epoch and print the duration
             epoch_end_time = time.time()
             epoch_duration = epoch_end_time - epoch_start_time
             epoch_minutes = int(epoch_duration // 60)
             epoch_seconds = int(epoch_duration % 60)
-            print(f"Epoch {e + 1} took {epoch_minutes} minutes {epoch_seconds} seconds")
-
-        return train_metrics_hist, dev_metrics_hist
+            print(f"Epoch {epoch + 1} took {epoch_minutes} minutes {epoch_seconds} seconds")
 
     def test(self, test_dataloader):
         test_metrics = Metrics()

@@ -112,7 +112,7 @@ if model_name:
                 nb_epochs=nb_epochs,
                 lr=learning_rate,
                 evaluate_dataloader=test_loader,
-                callback_fn=print_loss_accuracy,
+                train_callback=print_loss_accuracy,
                 stop_early=early_stopping_option,
             )
             training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
