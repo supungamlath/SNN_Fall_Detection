@@ -84,12 +84,12 @@ class SpikingDataset(Dataset):
         video_path = os.path.join(self.root_dir, self.folder_names[idx], "dvs-video.avi")
         return os.path.normpath(video_path)
 
-    def _adjust_to_batch_size(self, data, batch_size=7):
+    def _adjust_to_batch_size(self, data, batch_size):
         size = len(data)
         adjusted_size = (size // batch_size) * batch_size
         return data[:adjusted_size]
 
-    def random_split(self, test_size=0.25, shuffle=True):
+    def random_split(self, batch_size, test_size=0.25, shuffle=True):
         train_dataset = SpikingDataset(
             root_dir=self.root_dir,
             time_duration=self.time_duration,
@@ -120,8 +120,8 @@ class SpikingDataset(Dataset):
         test_data = combined[-test_size_elements:]
 
         # Adjust data sizes to be divisible by batch_size
-        train_data = self._adjust_to_batch_size(train_data)
-        test_data = self._adjust_to_batch_size(test_data)
+        train_data = self._adjust_to_batch_size(train_data, batch_size)
+        test_data = self._adjust_to_batch_size(test_data, batch_size)
 
         # Separate folder names and labels
         train_dataset.folder_names, train_dataset.labels = zip(*train_data) if train_data else ([], [])
@@ -129,7 +129,7 @@ class SpikingDataset(Dataset):
 
         return train_dataset, test_dataset
 
-    def split_by_subjects(self):
+    def split_by_subjects(self, batch_size):
         train_subjects = {
             "Subject1",
             "Subject3",
@@ -177,9 +177,9 @@ class SpikingDataset(Dataset):
             elif subject in dev_subjects:
                 dev_data.append((folder_name, label))
 
-        train_data = self._adjust_to_batch_size(train_data)
-        dev_data = self._adjust_to_batch_size(dev_data)
-        test_data = self._adjust_to_batch_size(test_data)
+        train_data = self._adjust_to_batch_size(train_data, batch_size)
+        dev_data = self._adjust_to_batch_size(dev_data, batch_size)
+        test_data = self._adjust_to_batch_size(test_data, batch_size)
 
         # Separate the folder names and labels
         train_dataset.folder_names, train_dataset.labels = zip(*train_data) if train_data else ([], [])

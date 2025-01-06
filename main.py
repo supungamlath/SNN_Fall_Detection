@@ -70,7 +70,7 @@ def main():
     )
 
     # Splitting the dataset
-    train_dataset, dev_dataset, test_dataset = dataset.split_by_subjects()
+    train_dataset, dev_dataset, test_dataset = dataset.split_by_subjects(batch_size=training_params["batch_size"])
 
     # Load existing model parameters
     model_records = load_params(models_records_file)
