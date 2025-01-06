@@ -37,6 +37,7 @@ def main():
         "step_lr_gamma": float(config["TRAINING"]["step_lr_gamma"]),
         "nb_epochs": int(config["TRAINING"]["nb_epochs"]),
         "batch_size": int(config["TRAINING"]["batch_size"]),
+        "use_regularizer": config.getboolean("TRAINING", "use_regularizer"),
     }
     task.connect(training_params, name="Training Parameters")
 
@@ -106,6 +107,7 @@ def main():
         evaluate_dataloader=dev_loader,
         nb_epochs=training_params["nb_epochs"],
         lr=training_params["learning_rate"],
+        use_regularizer=training_params["use_regularizer"],
         regularizer_alpha=training_params["reg_alpha"],
         step_lr_size=training_params["step_lr_size"],
         step_lr_gamma=training_params["step_lr_gamma"],

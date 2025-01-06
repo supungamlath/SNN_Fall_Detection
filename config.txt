@@ -12,12 +12,13 @@ nb_steps = 3000
 
 [TRAINING]
 save_file = models/saved/training_runs.json
-learning_rate = 0.0002
+learning_rate = 2e-4
 reg_alpha = 2e-6
 step_lr_size = 3
 step_lr_gamma = 1.0
 nb_epochs = 50
 batch_size = 7
+use_regularizer = yes
 
 [DATASET]
 name = HAR UP Fall Dataset

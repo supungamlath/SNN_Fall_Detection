@@ -21,7 +21,7 @@ class Trainer:
         train_dataloader,
         nb_epochs=10,
         lr=1e-3,
-        regularizer=True,
+        use_regularizer=True,
         regularizer_alpha=2e-6,
         step_lr_size=3,
         step_lr_gamma=0.90,
@@ -92,7 +92,7 @@ class Trainer:
                 # Calculate regularizer loss
                 # The reg_alpha parameter controls the strength of the regularizer
                 reg_loss = 0
-                if regularizer:
+                if use_regularizer:
                     for spks in spk_recs:
                         # L1 loss on total number of spikes
                         reg_loss += regularizer_alpha * torch.sum(spks)
