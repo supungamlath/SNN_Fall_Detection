@@ -49,6 +49,7 @@ def main():
         "bias_ratio": float(config["DATASET"]["bias_ratio"]),
         "camera1_only": config.getboolean("DATASET", "camera1_only"),
     }
+    task.connect(dataset_params, name="Dataset Parameters")
 
     # Define folder and paths
     root_folder = Path(config["DEFAULT"]["root_dir"] or os.getcwd())
