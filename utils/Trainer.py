@@ -140,7 +140,7 @@ class Trainer:
                 test_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), 0)
 
             test_metrics_dict = test_metrics.compute()
-            print(f"Dev Set Metrics : {test_metrics_dict}")
+            print(f"Test Set Metrics : {test_metrics_dict}")
             test_metrics.reset()
         return test_metrics_dict
 
