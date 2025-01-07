@@ -33,7 +33,7 @@ class Trainer:
         optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr)
         scheduler = StepLR(optimizer, step_size=step_lr_size, gamma=step_lr_gamma)
 
-        loss_fn = nn.CrossEntropyLoss()
+        loss_fn = nn.CrossEntropyLoss(weight = torch.tensor([3.0, 57.0]).to(self.model.device, self.model.dtype))
 
         train_metrics = Metrics()
         dev_metrics = Metrics()
