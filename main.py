@@ -13,7 +13,9 @@ from utils.clearml_helpers import report_metrics
 
 def main():
     # Init ClearML project
-    task = Task.init(project_name="NeuroFall", task_name="model_training", output_uri=True)
+    task = Task.init(
+        project_name="NeuroFall", task_name="model_training", output_uri=True, auto_resource_monitoring=False
+    )
 
     # Load configuration
     config = configparser.ConfigParser()
