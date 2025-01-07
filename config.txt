@@ -24,3 +24,5 @@ use_regularizer = no
 name = HAR UP Fall Dataset
 data_dir = data/har-up-spiking-dataset-240
 time_duration = 60.0
+camera1_only = yes
+bias_ratio = 46.0

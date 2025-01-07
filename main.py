@@ -44,7 +44,11 @@ def main():
     task.connect(training_params, name="Training Parameters")
 
     # Read dataset parameters
-    time_duration = float(config["DATASET"]["time_duration"])
+    dataset_params = {
+        "time_duration": float(config["DATASET"]["time_duration"]),
+        "bias_ratio": float(config["DATASET"]["bias_ratio"]),
+        "camera1_only": config.getboolean("DATASET", "camera1_only"),
+    }
 
     # Define folder and paths
     root_folder = Path(config["DEFAULT"]["root_dir"] or os.getcwd())
@@ -64,7 +68,8 @@ def main():
     # Load dataset
     dataset = SpikingDataset(
         root_dir=dataset_dir,
-        time_duration=time_duration,
+        time_duration=dataset_params["time_duration"],
+        camera1_only=dataset_params["camera1_only"],
     )
 
     # Splitting the dataset
@@ -73,7 +78,7 @@ def main():
     model = SpikingNN(
         layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [2],
         nb_steps=model_params["nb_steps"],
-        time_step=time_duration / model_params["nb_steps"],
+        time_step=dataset_params["time_duration"] / model_params["nb_steps"],
         tau_mem=model_params["tau_mem"] * 1e-3,
         tau_syn=model_params["tau_syn"] * 1e-3,
     )
@@ -114,6 +119,7 @@ def main():
         step_lr_size=training_params["step_lr_size"],
         step_lr_gamma=training_params["step_lr_gamma"],
         stop_early=True,
+        dataset_bias_ratio=dataset_params["bias_ratio"],
         evaluate_callback=evaluate_epoch_callback,
         train_callback=training_epoch_callback,
     )
