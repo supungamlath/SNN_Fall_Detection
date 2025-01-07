@@ -11,6 +11,7 @@ class SpikingDataset(Dataset):
         root_dir,
         time_duration=60.0,
         read_csv=True,
+        camera1_only=False,
     ):
         self.root_dir = root_dir
         self.time_duration = time_duration
@@ -19,6 +20,7 @@ class SpikingDataset(Dataset):
         self.max_timestamp = time_duration * 1e6
         self.nb_pixels = self.frame_height * self.frame_width
         self.scaling_factor = 1.57
+        self.camera1_only = camera1_only
 
         if read_csv:
             labels = self.get_fall_flags()
@@ -43,6 +45,8 @@ class SpikingDataset(Dataset):
         for _, row in df.iterrows():
             # Extract video name and fall flags
             video_name = row["name"]
+            if self.camera1_only and "Camera1" not in video_name:
+                continue
             fall_flags = [row[f"second_{i+1}"] for i in range(60)]
 
             # Add to the dictionary
