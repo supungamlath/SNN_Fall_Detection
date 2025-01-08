@@ -10,8 +10,8 @@ from utils.helpers import EarlyStopping
 
 # Deterministic behavior for reproducibility
 torch.manual_seed(0)
-torch.use_deterministic_algorithms(True)
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:2"
+torch.use_deterministic_algorithms(True)
 
 
 class Trainer:
