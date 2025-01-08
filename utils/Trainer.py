@@ -15,7 +15,7 @@ class Trainer:
     def __init__(self, model):
         self.model = model
         self.is_done = False  # Flag to stop training early
-        self.early_stopper = EarlyStopping(min_delta=0.0001)
+        self.early_stopper = EarlyStopping(patience=10, min_delta=0.0001)
         self.nb_steps = model.nb_steps
         self.chunk_size = self.nb_steps // 60  # Number of timesteps is split into 60 chunks, 1 chunk per second
 
