@@ -40,6 +40,7 @@ def main():
         "nb_epochs": int(config["TRAINING"]["nb_epochs"]),
         "batch_size": int(config["TRAINING"]["batch_size"]),
         "use_regularizer": config.getboolean("TRAINING", "use_regularizer"),
+        "early_stopping": config.getboolean("TRAINING", "early_stopping"),
     }
     task.connect(training_params, name="Training Parameters")
 
@@ -119,7 +120,7 @@ def main():
         regularizer_alpha=training_params["reg_alpha"],
         step_lr_size=training_params["step_lr_size"],
         step_lr_gamma=training_params["step_lr_gamma"],
-        stop_early=True,
+        stop_early=training_params["early_stopping"],
         dataset_bias_ratio=dataset_params["bias_ratio"],
         evaluate_callback=evaluate_epoch_callback,
         train_callback=training_epoch_callback,
