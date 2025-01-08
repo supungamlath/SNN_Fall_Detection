@@ -1,3 +1,4 @@
+import os
 import time
 import numpy as np
 import torch
@@ -7,8 +8,10 @@ from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_sc
 
 from utils.helpers import EarlyStopping
 
+# Deterministic behavior for reproducibility
 torch.manual_seed(0)
 torch.use_deterministic_algorithms(True)
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:2"
 
 
 class Trainer:
