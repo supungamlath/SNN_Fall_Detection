@@ -7,6 +7,9 @@ from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_sc
 
 from utils.helpers import EarlyStopping
 
+torch.manual_seed(0)
+torch.use_deterministic_algorithms(True)
+
 
 class Trainer:
     def __init__(self, model):
