@@ -1,4 +1,3 @@
-import os
 import time
 import numpy as np
 import torch
@@ -10,8 +9,6 @@ from utils.helpers import EarlyStopping
 
 # Deterministic behavior for reproducibility
 torch.manual_seed(0)
-os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:2"
-torch.use_deterministic_algorithms(True)
 
 
 class Trainer:
