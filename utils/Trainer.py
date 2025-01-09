@@ -34,7 +34,7 @@ class Trainer:
         evaluate_callback=None,
         train_callback=None,
     ):
-        optimizer = torch.optim.NAdam(self.model.parameters(), lr=lr, weight_decay=1e-4)
+        optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr)
         scheduler = StepLR(optimizer, step_size=step_lr_size, gamma=step_lr_gamma)
 
         loss_fn = nn.CrossEntropyLoss(
