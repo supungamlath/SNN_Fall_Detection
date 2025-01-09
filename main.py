@@ -49,6 +49,7 @@ def main():
         "time_duration": float(config["DATASET"]["time_duration"]),
         "bias_ratio": float(config["DATASET"]["bias_ratio"]),
         "camera1_only": config.getboolean("DATASET", "camera1_only"),
+        "split_by": config["DATASET"]["split_by"],
     }
     task.connect(dataset_params, name="Dataset Parameters")
 
@@ -75,7 +76,12 @@ def main():
     )
 
     # Splitting the dataset
-    train_dataset, dev_dataset, test_dataset = dataset.split_by_subjects(batch_size=training_params["batch_size"])
+    if dataset_params["split_by"] == "subjects":
+        train_dataset, dev_dataset, test_dataset = dataset.split_by_subjects(batch_size=training_params["batch_size"])
+    elif dataset_params["split_by"] == "trials":
+        train_dataset, dev_dataset, test_dataset = dataset.split_by_trials(batch_size=training_params["batch_size"])
+    else:
+        raise ValueError("Invalid value for split_by parameter")
 
     model = SpikingNN(
         layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [2],

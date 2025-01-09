@@ -134,6 +134,10 @@ class SpikingDataset(Dataset):
         return train_dataset, test_dataset
 
     def split_by_subjects(self, batch_size):
+        """
+        Splits the dataset into training, development, and test subsets based on predefined subjects.
+        """
+
         train_subjects = {
             "Subject1",
             "Subject3",
@@ -185,10 +189,85 @@ class SpikingDataset(Dataset):
         dev_data = self._adjust_to_batch_size(dev_data, batch_size)
         test_data = self._adjust_to_batch_size(test_data, batch_size)
 
+        # Raise error if any dataset is empty
+        if not train_data:
+            raise ValueError("Training dataset is empty!")
+        if not dev_data:
+            raise ValueError("Development dataset is empty!")
+        if not test_data:
+            raise ValueError("Test dataset is empty!")
+
         # Separate the folder names and labels
-        train_dataset.folder_names, train_dataset.labels = zip(*train_data) if train_data else ([], [])
-        dev_dataset.folder_names, dev_dataset.labels = zip(*dev_data) if dev_data else ([], [])
-        test_dataset.folder_names, test_dataset.labels = zip(*test_data) if test_data else ([], [])
+        train_dataset.folder_names, train_dataset.labels = zip(*train_data)
+        dev_dataset.folder_names, dev_dataset.labels = zip(*dev_data)
+        test_dataset.folder_names, test_dataset.labels = zip(*test_data)
+
+        return train_dataset, dev_dataset, test_dataset
+
+    def split_by_trials(self, batch_size):
+        """
+        Splits the dataset into training, development, and test sets based on trial information.
+
+        - Data from trial 3 is used exclusively for the test set.
+        - Data from trial 2 for subjects 1, 3, and 4 is used for the development set.
+        - All other data is used for the training set.
+        """
+
+        # Initialize datasets
+        train_dataset = SpikingDataset(
+            root_dir=self.root_dir,
+            time_duration=self.time_duration,
+            read_csv=False,
+        )
+        dev_dataset = SpikingDataset(
+            root_dir=self.root_dir,
+            time_duration=self.time_duration,
+            read_csv=False,
+        )
+        test_dataset = SpikingDataset(
+            root_dir=self.root_dir,
+            time_duration=self.time_duration,
+            read_csv=False,
+        )
+
+        # Combine folder names and labels
+        combined = list(zip(self.folder_names, self.labels))
+
+        # Separate data based on trials
+        train_data = []
+        dev_data = []
+        test_data = []
+
+        # Define subjects for the development set
+        dev_subjects = {"Subject1", "Subject3", "Subject4"}
+
+        for folder_name, label in combined:
+            subject = folder_name.split("Activity")[0]
+
+            if "Trial3" in folder_name:
+                test_data.append((folder_name, label))
+            elif "Trial2" in folder_name and subject in dev_subjects:
+                dev_data.append((folder_name, label))
+            else:
+                train_data.append((folder_name, label))
+
+        # Adjust data to batch size
+        train_data = self._adjust_to_batch_size(train_data, batch_size)
+        dev_data = self._adjust_to_batch_size(dev_data, batch_size)
+        test_data = self._adjust_to_batch_size(test_data, batch_size)
+
+        # Raise error if any dataset is empty
+        if not train_data:
+            raise ValueError("Training dataset is empty!")
+        if not dev_data:
+            raise ValueError("Development dataset is empty!")
+        if not test_data:
+            raise ValueError("Test dataset is empty!")
+
+        # Separate the folder names and labels
+        train_dataset.folder_names, train_dataset.labels = zip(*train_data)
+        dev_dataset.folder_names, dev_dataset.labels = zip(*dev_data)
+        test_dataset.folder_names, test_dataset.labels = zip(*test_data)
 
         return train_dataset, dev_dataset, test_dataset
 
