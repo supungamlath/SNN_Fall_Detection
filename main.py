@@ -54,7 +54,9 @@ def main():
     task.connect(dataset_params, name="Dataset Parameters")
 
     # Define folder and paths
-    root_folder = Path(config["DEFAULT"]["root_dir"] or os.getcwd())
+    root_folder = Path(config["DEFAULT"]["root_dir"])
+    if not root_folder or not root_folder.exists():
+        root_folder = os.getcwd()
     dataset_dir = root_folder / config["DATASET"]["data_dir"]
     model_dir = root_folder / config["MODEL"]["save_dir"]
     model_save_file = model_dir / f"{model_name}.pth"
