@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import configparser
+from torchinfo import summary
 from clearml import Dataset, Task
 
 from models.SpikingNN import SpikingNN
@@ -35,8 +36,6 @@ def main():
     training_params = {
         "learning_rate": float(config["TRAINING"]["learning_rate"]),
         "reg_alpha": float(config["TRAINING"]["reg_alpha"]),
-        "step_lr_size": int(config["TRAINING"]["step_lr_size"]),
-        "step_lr_gamma": float(config["TRAINING"]["step_lr_gamma"]),
         "nb_epochs": int(config["TRAINING"]["nb_epochs"]),
         "batch_size": int(config["TRAINING"]["batch_size"]),
         "use_regularizer": config.getboolean("TRAINING", "use_regularizer"),
@@ -92,6 +91,8 @@ def main():
         tau_mem=model_params["tau_mem"] * 1e-3,
         tau_syn=model_params["tau_syn"] * 1e-3,
     )
+    # Print model summary
+    summary(model, input_size=(training_params["batch_size"], model_params["nb_steps"], 240 * 180))
 
     # Creating DataLoader instances
     train_loader = SpikingDataLoader(
@@ -126,8 +127,6 @@ def main():
         lr=training_params["learning_rate"],
         use_regularizer=training_params["use_regularizer"],
         regularizer_alpha=training_params["reg_alpha"],
-        step_lr_size=training_params["step_lr_size"],
-        step_lr_gamma=training_params["step_lr_gamma"],
         stop_early=training_params["early_stopping"],
         dataset_bias_ratio=dataset_params["bias_ratio"],
         evaluate_callback=evaluate_epoch_callback,
