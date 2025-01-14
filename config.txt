@@ -5,7 +5,7 @@ root_dir = C:\Users\IntelliSense04\Projects\SNN_Fall_Detection
 name = model
 save_dir = models/saved
 save_file = models/saved/models.json
-hidden_layers = 25
+hidden_layers = 100,25
 tau_mem = 100
 tau_syn = 50
 nb_steps = 3000
@@ -14,12 +14,10 @@ nb_steps = 3000
 save_file = models/saved/training_runs.json
 learning_rate = 0.0025
 reg_alpha = 2e-6
-step_lr_size = 3
-step_lr_gamma = 1.0
 nb_epochs = 50
 batch_size = 4
 use_regularizer = no
-early_stopping = no
+early_stopping = yes
 
 [DATASET]
 name = HAR UP Fall Dataset

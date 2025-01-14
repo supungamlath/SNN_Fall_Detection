@@ -2,13 +2,15 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import StepLR
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 from utils.helpers import EarlyStopping
 
 # Deterministic behavior for reproducibility
 torch.manual_seed(0)
+
+# TODO - Investigate the training runs with zero scores
+# TODO - Increase the parameters and use weight decay
 
 
 class Trainer:
@@ -26,8 +28,6 @@ class Trainer:
         lr=1e-3,
         use_regularizer=True,
         regularizer_alpha=2e-6,
-        step_lr_size=3,
-        step_lr_gamma=0.90,
         stop_early=False,
         dataset_bias_ratio=46.0,
         evaluate_dataloader=None,
@@ -35,7 +35,6 @@ class Trainer:
         train_callback=None,
     ):
         optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr)
-        scheduler = StepLR(optimizer, step_size=step_lr_size, gamma=step_lr_gamma)
 
         loss_fn = nn.CrossEntropyLoss(
             weight=torch.tensor([1.0, dataset_bias_ratio]).to(self.model.device, self.model.dtype)
@@ -112,8 +111,6 @@ class Trainer:
 
                 total_loss.backward()  # Computes gradients and stores them in the .grad attributes of the parameters.
                 optimizer.step()  # Updates the parameters using the gradients stored in .grad.
-
-            scheduler.step()
 
             train_metrics_dict = train_metrics.compute()
             print(f"Train Set Metrics : {train_metrics_dict}")
