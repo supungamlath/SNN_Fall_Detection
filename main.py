@@ -5,6 +5,7 @@ import configparser
 from clearml import Dataset, Task
 from torchinfo import summary
 
+from models.SNNTorchConv import SNNTorchConv
 from models.SNNTorchSyn import SNNTorchSyn
 from models.SNNTorchFC import SNNTorchFC
 
@@ -87,14 +88,13 @@ def main():
     else:
         raise ValueError("Invalid value for split_by parameter")
 
-    model = SNNTorchSyn(
+    model = SNNTorchFC(
         num_inputs=dataset.nb_pixels,
         num_hidden=250,
         num_outputs=2,
         nb_steps=model_params["nb_steps"],
         time_step=dataset_params["time_duration"] / model_params["nb_steps"],
         tau_mem=model_params["tau_mem"] * 1e-3,
-        tau_syn=model_params["tau_syn"] * 1e-3,
     )
 
     # Print model summary
