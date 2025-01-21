@@ -4,7 +4,7 @@ import snntorch as snn
 import numpy as np
 
 
-class SNNTorchFC(nn.Module):
+class SNNTorchSyn(nn.Module):
     def __init__(
         self,
         num_inputs: int,
@@ -13,18 +13,20 @@ class SNNTorchFC(nn.Module):
         nb_steps: int,
         time_step=1e-2,
         tau_mem=10e-2,
+        tau_syn=5e-2,
     ):
-        super(SNNTorchFC, self).__init__()
+        super(SNNTorchSyn, self).__init__()
 
         self.nb_steps = nb_steps
+        self.alpha = float(np.exp(-time_step / tau_syn))
         self.beta = float(np.exp(-time_step / tau_mem))
         print(f"LIF Parameter beta: {self.beta}")
 
         # Initialize layers
         self.fc1 = nn.Linear(num_inputs, num_hidden)
-        self.lif1 = snn.Leaky(beta=self.beta)
+        self.lif1 = snn.Synaptic(alpha=self.alpha, beta=self.beta)
         self.fc2 = nn.Linear(num_hidden, num_outputs)
-        self.lif2 = snn.Leaky(beta=self.beta)
+        self.lif2 = snn.Synaptic(alpha=self.alpha, beta=self.beta)
 
         # Move the model to the GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -34,8 +36,8 @@ class SNNTorchFC(nn.Module):
     def forward(self, x):
 
         # Initialize hidden states at t=0
-        mem1 = self.lif1.init_leaky()
-        mem2 = self.lif2.init_leaky()
+        mem1 = self.lif1.init_synaptic()
+        mem2 = self.lif2.init_synaptic()
 
         # Record the final layer
         spk2_rec = []
