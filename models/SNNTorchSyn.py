@@ -20,6 +20,7 @@ class SNNTorchSyn(nn.Module):
         self.nb_steps = nb_steps
         self.alpha = float(np.exp(-time_step / tau_syn))
         self.beta = float(np.exp(-time_step / tau_mem))
+        print(f"LIF Parameter alpha: {self.alpha}")
         print(f"LIF Parameter beta: {self.beta}")
 
         # Initialize layers
@@ -36,8 +37,8 @@ class SNNTorchSyn(nn.Module):
     def forward(self, x):
 
         # Initialize hidden states at t=0
-        mem1 = self.lif1.init_synaptic()
-        mem2 = self.lif2.init_synaptic()
+        syn1, mem1 = self.lif1.init_synaptic()
+        syn2, mem2 = self.lif2.init_synaptic()
 
         # Record the final layer
         spk2_rec = []
@@ -48,9 +49,9 @@ class SNNTorchSyn(nn.Module):
 
         for step in range(self.nb_steps):
             cur1 = self.fc1(x[:, step])
-            spk1, mem1 = self.lif1(cur1, mem1)
+            spk1, syn1, mem1 = self.lif1(cur1, syn1, mem1)
             cur2 = self.fc2(spk1)
-            spk2, mem2 = self.lif2(cur2, mem2)
+            spk2, syn2, mem2 = self.lif2(cur2, syn2, mem2)
             spk2_rec.append(spk2)
             mem2_rec.append(mem2)
 
