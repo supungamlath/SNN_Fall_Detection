@@ -170,14 +170,14 @@ class SpikingNN(nn.Module):
     def forward(self, x):
         # Forward pass through hidden layers
         spk_recs = []
-        mem_recs = []
+        # Flatten the last two dimensions into one (height * width)
+        x = torch.flatten(x, start_dim=-2)
         for hidden_layer in self.hidden_layers:
             x, mem_rec = hidden_layer(x)
             spk_recs.append(x)
-            mem_recs.append(mem_rec)
         # Forward pass through the readout layer
         out = self.readout_layer(x)
-        return out, (spk_recs, mem_recs)
+        return out, spk_recs
 
     def save(self, path):
         torch.save(self, path)

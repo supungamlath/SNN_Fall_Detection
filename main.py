@@ -2,10 +2,12 @@ import os
 from pathlib import Path
 
 import configparser
-from torchinfo import summary
 from clearml import Dataset, Task
+from torchinfo import summary
 
-from models.SpikingNN import SpikingNN
+from models.SNNTorchFC import SNNTorchFC
+
+# from models.SpikingNN import SpikingNN
 from utils.SpikingDataset import SpikingDataset
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.Trainer import Trainer
@@ -78,21 +80,29 @@ def main():
 
     # Splitting the dataset
     if dataset_params["split_by"] == "subjects":
-        train_dataset, dev_dataset, test_dataset = dataset.split_by_subjects(batch_size=training_params["batch_size"])
+        train_dataset, dev_dataset, test_dataset = dataset.split_by_subjects()
     elif dataset_params["split_by"] == "trials":
-        train_dataset, dev_dataset, test_dataset = dataset.split_by_trials(batch_size=training_params["batch_size"])
+        train_dataset, dev_dataset, test_dataset = dataset.split_by_trials()
     else:
         raise ValueError("Invalid value for split_by parameter")
 
-    model = SpikingNN(
-        layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [2],
+    # model = SpikingNN(
+    #     layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [2],
+    #     nb_steps=model_params["nb_steps"],
+    #     time_step=dataset_params["time_duration"] / model_params["nb_steps"],
+    #     tau_mem=model_params["tau_mem"] * 1e-3,
+    #     tau_syn=model_params["tau_syn"] * 1e-3,
+    # )
+    model = SNNTorchFC(
+        num_inputs=dataset.nb_pixels,
+        num_hidden=250,
+        num_outputs=2,
         nb_steps=model_params["nb_steps"],
         time_step=dataset_params["time_duration"] / model_params["nb_steps"],
         tau_mem=model_params["tau_mem"] * 1e-3,
-        tau_syn=model_params["tau_syn"] * 1e-3,
     )
     # Print model summary
-    summary(model, input_size=(training_params["batch_size"], model_params["nb_steps"], 240 * 180))
+    summary(model, input_size=(training_params["batch_size"], model_params["nb_steps"], 240, 180))
 
     # Creating DataLoader instances
     train_loader = SpikingDataLoader(

@@ -25,8 +25,8 @@ class Trainer:
         self,
         train_dataloader,
         nb_epochs=10,
-        lr=1e-3,
-        use_regularizer=True,
+        lr=0.0025,
+        use_regularizer=False,
         regularizer_alpha=2e-6,
         stop_early=False,
         dataset_bias_ratio=46.0,
@@ -83,12 +83,10 @@ class Trainer:
 
             # Training loop
             for x_local, y_local in train_dataloader:
-                optimizer.zero_grad()  # Clears gradients to prevent accumulation of gradients from multiple backward passes.
                 x_local = x_local.to(self.model.device, self.model.dtype)
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
-                output, recs = self.model.forward(x_local.to_dense())
-                spk_recs, _ = recs
+                output, spk_recs = self.model.forward(x_local.to_dense())
                 output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
 
                 # Get the max value for each second as the prediction
@@ -109,6 +107,7 @@ class Trainer:
 
                 train_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), total_loss.item())
 
+                optimizer.zero_grad()  # Clears gradients to prevent accumulation of gradients from multiple backward passes.
                 total_loss.backward()  # Computes gradients and stores them in the .grad attributes of the parameters.
                 optimizer.step()  # Updates the parameters using the gradients stored in .grad.
 

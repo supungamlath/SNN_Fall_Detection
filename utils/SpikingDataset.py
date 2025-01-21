@@ -59,21 +59,25 @@ class SpikingDataset(Dataset):
 
     def __getitem__(self, idx):
         events_file = self.folder_names[idx] + ".h5"
-        try:
-            spike_data = h5py.File(os.path.join(self.root_dir, self.folder_names[idx], events_file), "r")
+        events_file_path = os.path.join(self.root_dir, self.folder_names[idx], events_file)
+        with h5py.File(events_file_path, "r") as spike_data:
             spike_tuples = np.array(spike_data["events"])
             # Remove events that occur after max_timestamp
             spike_tuples = spike_tuples[spike_tuples[:, 0] < self.max_timestamp]
-            sample = {
-                "timestamp": spike_tuples[:, 0] / 1e6 * self.scaling_factor,
-                "x": spike_tuples[:, 1],
-                "y": spike_tuples[:, 2],
-                "polarity": spike_tuples[:, 3],
-            }
-            return sample, self.labels[idx]
-        except Exception as e:
-            print(f"Error reading {events_file}: {e}")
-            return None, None
+            spike_array = np.zeros(
+                spike_tuples.shape[0],
+                dtype=[
+                    ("t", np.float32),
+                    ("x", np.int32),
+                    ("y", np.int32),
+                    ("p", np.int32),
+                ],
+            )
+            spike_array["t"] = spike_tuples[:, 0] / 1e6 * self.scaling_factor
+            spike_array["x"] = spike_tuples[:, 1]
+            spike_array["y"] = spike_tuples[:, 2]
+            spike_array["p"] = spike_tuples[:, 3]
+            return spike_array, self.labels[idx]
 
     def edit_label(self, idx, label):
         self.labels[idx] = label
@@ -88,12 +92,7 @@ class SpikingDataset(Dataset):
         video_path = os.path.join(self.root_dir, self.folder_names[idx], "dvs-video.avi")
         return os.path.normpath(video_path)
 
-    def _adjust_to_batch_size(self, data, batch_size):
-        size = len(data)
-        adjusted_size = (size // batch_size) * batch_size
-        return data[:adjusted_size]
-
-    def random_split(self, batch_size, test_size=0.25, shuffle=True):
+    def random_split(self, test_size=0.25, shuffle=True):
         train_dataset = SpikingDataset(
             root_dir=self.root_dir,
             time_duration=self.time_duration,
@@ -123,17 +122,13 @@ class SpikingDataset(Dataset):
         train_data = combined[:-test_size_elements]
         test_data = combined[-test_size_elements:]
 
-        # Adjust data sizes to be divisible by batch_size
-        train_data = self._adjust_to_batch_size(train_data, batch_size)
-        test_data = self._adjust_to_batch_size(test_data, batch_size)
-
         # Separate folder names and labels
         train_dataset.folder_names, train_dataset.labels = zip(*train_data) if train_data else ([], [])
         test_dataset.folder_names, test_dataset.labels = zip(*test_data) if test_data else ([], [])
 
         return train_dataset, test_dataset
 
-    def split_by_subjects(self, batch_size):
+    def split_by_subjects(self):
         """
         Splits the dataset into training, development, and test subsets based on predefined subjects.
         """
@@ -185,10 +180,6 @@ class SpikingDataset(Dataset):
             elif subject in dev_subjects:
                 dev_data.append((folder_name, label))
 
-        train_data = self._adjust_to_batch_size(train_data, batch_size)
-        dev_data = self._adjust_to_batch_size(dev_data, batch_size)
-        test_data = self._adjust_to_batch_size(test_data, batch_size)
-
         # Raise error if any dataset is empty
         if not train_data:
             raise ValueError("Training dataset is empty!")
@@ -204,7 +195,7 @@ class SpikingDataset(Dataset):
 
         return train_dataset, dev_dataset, test_dataset
 
-    def split_by_trials(self, batch_size):
+    def split_by_trials(self):
         """
         Splits the dataset into training, development, and test sets based on trial information.
 
@@ -239,7 +230,8 @@ class SpikingDataset(Dataset):
         test_data = []
 
         # Define subjects for the development set
-        dev_subjects = {"Subject1", "Subject3", "Subject4"}
+        # TODO - Change 9 back to 4
+        dev_subjects = {"Subject1", "Subject3", "Subject9"}
 
         for folder_name, label in combined:
             subject = folder_name.split("Activity")[0]
@@ -250,11 +242,6 @@ class SpikingDataset(Dataset):
                 dev_data.append((folder_name, label))
             else:
                 train_data.append((folder_name, label))
-
-        # Adjust data to batch size
-        train_data = self._adjust_to_batch_size(train_data, batch_size)
-        dev_data = self._adjust_to_batch_size(dev_data, batch_size)
-        test_data = self._adjust_to_batch_size(test_data, batch_size)
 
         # Raise error if any dataset is empty
         if not train_data:
