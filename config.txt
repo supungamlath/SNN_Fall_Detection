@@ -17,12 +17,12 @@ reg_alpha = 2e-6
 nb_epochs = 50
 batch_size = 4
 use_regularizer = no
-early_stopping = yes
+early_stopping = no
 
 [DATASET]
 name = HAR UP Fall Dataset
 data_dir = data/har-up-spiking-dataset-240
 time_duration = 60.0
-camera1_only = yes
+camera1_only = no
 split_by = trials
 bias_ratio = 5.0
