@@ -7,7 +7,7 @@ from torchinfo import summary
 
 from models.SNNTorchConv import SNNTorchConv
 from models.SNNTorchSyn import SNNTorchSyn
-from models.SNNTorchFC import SNNTorchFC
+from models.SNNTorchLeaky import SNNTorchLeaky
 
 # from models.SpikingNN import SpikingNN
 from utils.SpikingDataset import SpikingDataset
@@ -88,7 +88,7 @@ def main():
     else:
         raise ValueError("Invalid value for split_by parameter")
 
-    model = SNNTorchFC(
+    model = SNNTorchLeaky(
         num_inputs=dataset.nb_pixels,
         num_hidden=250,
         num_outputs=2,

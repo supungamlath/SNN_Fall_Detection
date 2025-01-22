@@ -4,7 +4,7 @@ import snntorch as snn
 import numpy as np
 
 
-class SNNTorchFC(nn.Module):
+class SNNTorchLeaky(nn.Module):
     def __init__(
         self,
         num_inputs: int,
@@ -14,7 +14,7 @@ class SNNTorchFC(nn.Module):
         time_step=1e-2,
         tau_mem=10e-2,
     ):
-        super(SNNTorchFC, self).__init__()
+        super(SNNTorchLeaky, self).__init__()
 
         self.nb_steps = nb_steps
         self.beta = float(np.exp(-time_step / tau_mem))
