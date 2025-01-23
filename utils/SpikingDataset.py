@@ -230,8 +230,7 @@ class SpikingDataset(Dataset):
         test_data = []
 
         # Define subjects for the development set
-        # TODO - Change 9 back to 4
-        dev_subjects = {"Subject1", "Subject3", "Subject9"}
+        dev_subjects = {"Subject1", "Subject3", "Subject4"}
 
         for folder_name, label in combined:
             subject = folder_name.split("Activity")[0]
