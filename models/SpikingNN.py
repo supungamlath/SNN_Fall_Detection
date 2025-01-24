@@ -33,10 +33,12 @@ class ATan(torch.autograd.Function):
     to Enhance Learning of Spiking Neural Networks. Proc. IEEE/CVF
     Int. Conf. Computer Vision (ICCV), pp. 2661-2671.*"""
 
+    alpha = 2.0
+
     @staticmethod
-    def forward(ctx, input_, alpha):
+    def forward(ctx, input_):
         ctx.save_for_backward(input_)
-        ctx.alpha = alpha
+        ctx.alpha = ATan.alpha
         out = (input_ > 0).float()
         return out
 
