@@ -55,7 +55,7 @@ class SNNTorchSyn(nn.Module):
             spk2_rec.append(spk2)
             mem2_rec.append(mem2)
 
-        return torch.stack(mem2_rec, dim=0), torch.stack(spk2_rec, dim=0)
+        return torch.stack(mem2_rec, dim=1), torch.stack(spk2_rec, dim=1)
 
     def save(self, path):
         torch.save(self.state_dict(), path)

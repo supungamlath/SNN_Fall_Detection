@@ -57,4 +57,4 @@ class SNNTorchConv(nn.Module):
             spk3_rec.append(spk3)
             mem3_rec.append(mem3)
 
-        return torch.stack(mem3_rec, dim=0), torch.stack(spk3_rec, dim=0)
+        return torch.stack(mem3_rec, dim=1), torch.stack(spk3_rec, dim=1)
