@@ -10,7 +10,6 @@ from utils.helpers import EarlyStopping
 torch.manual_seed(0)
 
 # TODO - Investigate the training runs with zero scores
-# TODO - Increase the parameters and use weight decay
 
 
 class Trainer:

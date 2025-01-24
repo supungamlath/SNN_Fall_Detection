@@ -3,6 +3,51 @@ import torch.nn as nn
 import numpy as np
 
 
+class ATan(torch.autograd.Function):
+    """
+    Surrogate gradient of the Heaviside step function from https://github.com/jeshraghian/snntorch/blob/master/snntorch/surrogate.py.
+
+    **Forward pass:** Heaviside step function shifted.
+
+        .. math::
+
+            S=\\begin{cases} 1 & \\text{if U ≥ U$_{\\rm thr}$} \\\\
+            0 & \\text{if U < U$_{\\rm thr}$}
+            \\end{cases}
+
+    **Backward pass:** Gradient of shifted arc-tan function.
+
+        .. math::
+
+                S&≈\\frac{1}{π}\\text{arctan}(πU \\frac{α}{2}) \\\\
+                \\frac{∂S}{∂U}&=\\frac{1}{π}\\frac{1}{(1+(πU\\frac{α}{2})^2)}
+
+
+    α defaults to 2, and can be modified by calling \
+        ``surrogate.atan(alpha=2)``.
+
+    Adapted from:
+
+    *W. Fang, Z. Yu, Y. Chen, T. Masquelier, T. Huang,
+    Y. Tian (2021) Incorporating Learnable Membrane Time Constants
+    to Enhance Learning of Spiking Neural Networks. Proc. IEEE/CVF
+    Int. Conf. Computer Vision (ICCV), pp. 2661-2671.*"""
+
+    @staticmethod
+    def forward(ctx, input_, alpha):
+        ctx.save_for_backward(input_)
+        ctx.alpha = alpha
+        out = (input_ > 0).float()
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        (input_,) = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        grad = ctx.alpha / 2 / (1 + (torch.pi / 2 * ctx.alpha * input_).pow_(2)) * grad_input
+        return grad
+
+
 class SurrGradSpike(torch.autograd.Function):
     """
     Here we implement our spiking nonlinearity which also implements
@@ -50,7 +95,7 @@ class SpikingHiddenLayer(nn.Module):
         self.alpha = alpha
         self.beta = beta
 
-        self.spike_fn = SurrGradSpike.apply
+        self.spike_fn = ATan.apply
 
         weight_scale = 0.2
 
@@ -74,7 +119,7 @@ class SpikingHiddenLayer(nn.Module):
         h1_from_input = torch.einsum("abc,cd->abd", (inputs, self.w_input))
         for t in range(self.nb_steps):
             h1 = h1_from_input[:, t] + torch.einsum("ab,bc->ac", (out, self.w_hidden))
-            mthr = mem - 1.0
+            mthr = mem - 1.0  # Reset by subtraction
             out = self.spike_fn(mthr)
             rst = out.detach()  # We do not want to backprop through the reset
 
@@ -146,7 +191,7 @@ class SpikingNN(nn.Module):
         self.beta = float(np.exp(-time_step / tau_mem))
 
         # Using ModuleList for hidden layers
-        nb_hidden_layers = len(layer_sizes) - 2
+        nb_hidden_layers = len(layer_sizes) - 1
         hidden_layers = []
         for i in range(nb_hidden_layers):
             hidden_layers.append(
@@ -160,28 +205,26 @@ class SpikingNN(nn.Module):
             )
         self.hidden_layers = nn.ModuleList(hidden_layers)
         # Readout layer
-        self.readout_layer = SpikingReadoutLayer(layer_sizes[-2], layer_sizes[-1], nb_steps, self.alpha, self.beta)
+        # self.readout_layer = SpikingReadoutLayer(layer_sizes[-2], layer_sizes[-1], nb_steps, self.alpha, self.beta)
 
         # Move the model to the GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dtype = torch.float32
         self.to(self.device, self.dtype)
 
-    def forward(self, x):
+    def forward(self, spk):
         # Forward pass through hidden layers
-        spk_recs = []
         # Flatten the last two dimensions into one (height * width)
-        x = torch.flatten(x, start_dim=-2)
+        spk = torch.flatten(spk, start_dim=-2)
         for hidden_layer in self.hidden_layers:
-            x, mem_rec = hidden_layer(x)
-            spk_recs.append(x)
+            spk, mem = hidden_layer(spk)
         # Forward pass through the readout layer
-        out = self.readout_layer(x)
-        return out, spk_recs
+        # out = self.readout_layer(spk)
+        return mem, spk
 
     def save(self, path):
         torch.save(self, path)
 
     @staticmethod
     def load(path):
-        return torch.load(path, weights_only=True)
+        return torch.load(path, weights_only=False)
