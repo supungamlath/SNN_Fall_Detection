@@ -132,7 +132,7 @@ class Trainer:
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
                 output, _ = self.model.forward(x_local.to_dense())
-                output = output[:, : self.chunk_size * 60, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
 
                 # Get the max value for each second as the prediction
                 y_pred = torch.argmax(output, dim=2)

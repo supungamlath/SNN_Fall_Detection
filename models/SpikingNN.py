@@ -225,8 +225,7 @@ class SpikingNN(nn.Module):
         return mem, spk
 
     def save(self, path):
-        torch.save(self, path)
+        torch.save(self.state_dict(), path)
 
-    @staticmethod
-    def load(path):
-        return torch.load(path, weights_only=False)
+    def load(self, path):
+        self.load_state_dict(torch.load(path, weights_only=True))
