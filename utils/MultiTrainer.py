@@ -56,7 +56,7 @@ class MultiTrainer:
                         y_local = y_local.to(self.model.device, self.model.dtype)
 
                         _, spk = self.model.forward(x_local.to_dense())
-                        spk = spk[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).sum(dim=2)
+                        spk = spk[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 12).sum(dim=2)
 
                         # Get the max value for each second as the prediction
                         y_pred = torch.argmax(spk, dim=2)
