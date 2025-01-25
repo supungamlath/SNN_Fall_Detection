@@ -13,7 +13,7 @@ from models.SNNTorchLeaky import SNNTorchLeaky
 from models.SpikingNN import SpikingNN
 from utils.SpikingDataset import SpikingDataset
 from utils.SpikingDataLoader import SpikingDataLoader
-from utils.Trainer import Trainer
+from utils.BinaryTrainer import BinaryTrainer
 from utils.clearml_helpers import report_metrics
 
 
@@ -153,7 +153,7 @@ def main():
         print(f"Saved train record for epoch {epoch + 1}")
 
     # Train the model
-    trainer = Trainer(model=model)
+    trainer = BinaryTrainer(model=model)
     trainer.train(
         train_loader,
         evaluate_dataloader=dev_loader,

@@ -12,7 +12,7 @@ torch.manual_seed(0)
 # TODO - Investigate the training runs with zero scores
 
 
-class Trainer:
+class BinaryTrainer:
     def __init__(self, model):
         self.model = model
         self.is_done = False  # Flag to stop training early

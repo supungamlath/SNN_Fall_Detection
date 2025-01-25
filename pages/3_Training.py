@@ -3,7 +3,7 @@ import os
 import streamlit as st
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.SpikingDataset import SpikingDataset
-from utils.Trainer import Trainer
+from utils.BinaryTrainer import BinaryTrainer
 from utils.streamlit_helpers import print_loss_accuracy
 from utils.visualization import live_plot_plotly
 from utils.helpers import get_datasets_dirs, load_params, save_params
@@ -105,7 +105,7 @@ if model_name:
 
         with st.spinner("Training the model..."):
             model = st.session_state["model"]
-            trainer = Trainer(model=model)
+            trainer = BinaryTrainer(model=model)
 
             train_metrics_hist, dev_metrics_hist = trainer.train(
                 train_loader,
