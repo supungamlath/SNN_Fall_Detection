@@ -118,11 +118,11 @@ def visualize_events(
     """
     timesteps, width, height = data.shape
 
-    # Reshape and average data to reduce timesteps if specified
+    # Reshape and sum events to reduce timesteps if specified
     if plot_timesteps is not None:
         assert timesteps % plot_timesteps == 0, "Timesteps must be divisible by plot_timesteps."
         group_size = timesteps // plot_timesteps
-        data = data.reshape(plot_timesteps, group_size, width, height).mean(axis=1)
+        data = data.reshape(plot_timesteps, group_size, width, height).sum(axis=1)
 
     timesteps = data.shape[0]  # Update timesteps after reduction
 
@@ -137,19 +137,22 @@ def visualize_events(
     fig = sp.make_subplots(
         rows=1,
         cols=timesteps,
-        subplot_titles=[f"Timestamp - {i * group_size} Label - {int(labels[i])}" for i in range(timesteps)],
+        subplot_titles=[
+            f"Timestamp: {i * group_size} - {(i+1) * group_size}<br> Label: {int(labels[i])}" for i in range(timesteps)
+        ],
+        horizontal_spacing=0.0005,
     )
 
     # Add frames to the subplot
     for i in range(timesteps):
-        frame = np.rot90(data[i])
+        frame = np.rot90(data[i])  # Plotly expects the data to be rotated
 
         fig.add_trace(
             go.Heatmap(
                 z=frame,
                 colorscale="Viridis",
-                showscale=(i == timesteps - 1),  # Show scale only on the last plot
-                colorbar=dict(len=1.0, title="Intensity") if i == timesteps - 1 else None,
+                showscale=(i == 0),  # Show scale only on one plot
+                colorbar=dict(len=1.0, title="Intensity") if i == 0 else None,
                 zmin=zmin,
                 zmax=zmax,
             ),
@@ -161,22 +164,18 @@ def visualize_events(
     fig.update_layout(
         title="Visualizing Vector Over Timesteps",
         height=300,
-        width=timesteps * 300,
+        width=timesteps * 250,
     )
 
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
-    # Lock aspect ratio and remove axes for each subplot
-    # for i in range(1, timesteps + 1):
-    #     fig.update_xaxes(visible=False, scaleanchor=f"x{i}", matches=f"x{i}", row=1, col=i)
-    #     fig.update_yaxes(visible=False, scaleanchor=f"x{i}", matches=f"x{i}", row=1, col=i)
 
     fig.show()
 
 
-def visualize_input(data, plot_timesteps=60, columns=10):
+def visualize_input_grid(data, plot_timesteps=60, columns=10):
     timesteps, height, width = data.shape
-    # Reshape and average data to reduce timesteps if specified
+    # Reshape and average data to reduce timesteps
     if plot_timesteps is not None:
         assert timesteps % plot_timesteps == 0, "Timesteps must be divisible by plot_timesteps."
         group_size = timesteps // plot_timesteps
@@ -184,17 +183,16 @@ def visualize_input(data, plot_timesteps=60, columns=10):
 
     timesteps = data.shape[0]  # Update timesteps after reduction
 
-    # Define zmin and zmax for normalization (use min and max from the data or set manually)
+    # Define zmin and zmax for legend
     zmin = np.min(data)
     zmax = np.max(data)
 
-    # Create a subplot grid with 10 columns
+    # Create a subplot grid
     rows = int(np.ceil(timesteps / columns))
     fig = sp.make_subplots(
         rows=rows, cols=columns, subplot_titles=[f"Timestep {i*group_size}" for i in range(timesteps)]
     )
 
-    # Add heatmaps to the subplots
     for i in range(timesteps):
         row = i // columns + 1
         col = i % columns + 1
@@ -212,13 +210,12 @@ def visualize_input(data, plot_timesteps=60, columns=10):
 
     fig.update_layout(
         title="Heatmap of Images at Every 25 Timesteps",
-        height=600,  # Adjust for appropriate height
-        width=1000,  # Width suitable for 10 columns
-        font=dict(size=10),  # Adjust font size for subplot titles
+        height=600,
+        width=1000,
+        font=dict(size=10),
     )
     fig.update_annotations(font_size=10)
     fig.update_xaxes(visible=False)  # Hide x-axes
     fig.update_yaxes(visible=False)  # Hide y-axes
 
-    # Show the plot
     fig.show()
