@@ -74,7 +74,7 @@ def visualize_snn_output(mem_rec, spk_rec, timestep_range=None, time_seconds=60)
     for neuron_idx in range(num_neurons):
         bar_fig.add_trace(
             go.Bar(
-                x=list(range(1, time_seconds + 1)),
+                x=list(range(0, time_seconds)),
                 y=spk_rec[:, neuron_idx],
                 name=f"Neuron {neuron_idx}",
             )
@@ -234,7 +234,7 @@ def visualize_events(
         height=300,
         width=timesteps * 250,
     )
-
+    fig.update_annotations(font_size=14)
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
 
