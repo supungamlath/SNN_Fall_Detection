@@ -35,7 +35,7 @@ def main():
         "tau_mem": float(config["MODEL"]["tau_mem"]),
         "tau_syn": float(config["MODEL"]["tau_syn"]),
         "nb_steps": int(config["MODEL"]["nb_steps"]),
-        "multiclass": config.getboolean(["MODEL"]["multiclass"]),
+        "multiclass": config.getboolean("MODEL", "multiclass"),
     }
     task.connect(model_params, name="Model Parameters")
 
