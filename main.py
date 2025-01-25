@@ -3,7 +3,6 @@ from pathlib import Path
 
 import configparser
 from clearml import Dataset, Task
-from torchinfo import summary
 
 from models.SNNTorchConv import SNNTorchConv
 from models.SNNTorchSyn import SNNTorchSyn
@@ -127,9 +126,6 @@ def main():
     #     time_step=dataset_params["time_duration"] / model_params["nb_steps"],
     #     tau_mem=model_params["tau_mem"] * 1e-3,
     # )
-
-    # Print model summary
-    # summary(model, input_size=(training_params["batch_size"], model_params["nb_steps"], 240, 180))
 
     # Creating DataLoader instances
     train_loader = SpikingDataLoader(
