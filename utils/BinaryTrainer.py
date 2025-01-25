@@ -57,14 +57,15 @@ class BinaryTrainer:
                         x_local = x_local.to(self.model.device, self.model.dtype)
                         y_local = y_local.to(self.model.device, self.model.dtype)
 
-                        output, _ = self.model.forward(x_local.to_dense())
-                        output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                        mem, spk = self.model.forward(x_local.to_dense())
+                        # mem = mem[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                        spk = spk[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).sum(dim=2)
 
                         # Get the max value for each second as the prediction
-                        y_pred = torch.argmax(output, dim=2)
+                        y_pred = torch.argmax(spk, dim=2)
 
-                        # Cross Entropy Loss function expects the input to be of shape (N, C, L)
-                        ce_loss = loss_fn(output.permute(0, 2, 1), y_local.long())
+                        # Cross Entropy Loss function expects the input to be of shape (batch_size, classes, timesteps)
+                        ce_loss = loss_fn(spk.permute(0, 2, 1), y_local.long())
 
                         dev_metrics.update(
                             y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), ce_loss.item()
@@ -85,24 +86,22 @@ class BinaryTrainer:
                 x_local = x_local.to(self.model.device, self.model.dtype)
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
-                output, spk_recs = self.model.forward(x_local.to_dense())
-                output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                mem, spk = self.model.forward(x_local.to_dense())
+                # mem = mem[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                spk = spk[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).sum(dim=2)
 
                 # Get the max value for each second as the prediction
-                y_pred = torch.argmax(output, dim=2)
+                y_pred = torch.argmax(spk, dim=2)
 
                 # Calculate regularizer loss
                 # The reg_alpha parameter controls the strength of the regularizer
                 reg_loss = 0
                 if use_regularizer:
-                    for spks in spk_recs:
-                        # L1 loss on total number of spikes
-                        reg_loss += regularizer_alpha * torch.sum(spks)
-                        # L2 loss on spikes per neuron
-                        reg_loss += regularizer_alpha * torch.mean(torch.sum(torch.sum(spks, dim=0), dim=0) ** 2)
+                    # L1 loss on total number of spikes
+                    reg_loss += regularizer_alpha * torch.sum(spk)
 
                 # Combine cross entropy loss and regularizer loss
-                total_loss = loss_fn(output.permute(0, 2, 1), y_local.long()) + reg_loss
+                total_loss = loss_fn(spk.permute(0, 2, 1), y_local.long()) + reg_loss
 
                 train_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), total_loss.item())
 
@@ -131,11 +130,12 @@ class BinaryTrainer:
                 x_local = x_local.to(self.model.device, self.model.dtype)
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
-                output, _ = self.model.forward(x_local.to_dense())
-                output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                mem, spk = self.model.forward(x_local.to_dense())
+                # mem = mem[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                spk = spk[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).sum(dim=2)
 
                 # Get the max value for each second as the prediction
-                y_pred = torch.argmax(output, dim=2)
+                y_pred = torch.argmax(spk, dim=2)
 
                 # Set the loss to 0 as we are not calculating it here
                 test_metrics.update(y_pred.cpu().detach().numpy(), y_local.cpu().detach().numpy(), 0)
