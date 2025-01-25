@@ -14,6 +14,7 @@ from models.SpikingNN import SpikingNN
 from utils.SpikingDataset import SpikingDataset
 from utils.SpikingDataLoader import SpikingDataLoader
 from utils.BinaryTrainer import BinaryTrainer
+from utils.MultiTrainer import MultiTrainer
 from utils.clearml_helpers import report_metrics
 
 
@@ -34,6 +35,7 @@ def main():
         "tau_mem": float(config["MODEL"]["tau_mem"]),
         "tau_syn": float(config["MODEL"]["tau_syn"]),
         "nb_steps": int(config["MODEL"]["nb_steps"]),
+        "multiclass": config.getboolean("MODEL", "multiclass"),
     }
     task.connect(model_params, name="Model Parameters")
 
@@ -79,6 +81,7 @@ def main():
         root_dir=dataset_dir,
         time_duration=dataset_params["time_duration"],
         camera1_only=dataset_params["camera1_only"],
+        multiclass=model_params["multiclass"]
     )
 
     # Splitting the dataset
@@ -90,7 +93,7 @@ def main():
         raise ValueError("Invalid value for split_by parameter")
 
     model = SpikingNN(
-        layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [2],
+        layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [12 if model_params["multiclass"] else 2],
         nb_steps=model_params["nb_steps"],
         time_step=dataset_params["time_duration"] / model_params["nb_steps"],
         tau_mem=model_params["tau_mem"] * 1e-3,
@@ -153,7 +156,11 @@ def main():
         print(f"Saved train record for epoch {epoch + 1}")
 
     # Train the model
-    trainer = BinaryTrainer(model=model)
+    if model_params["multiclass"]:
+        trainer = MultiTrainer(model=model)
+    else:
+        trainer = BinaryTrainer(model=model)
+    
     trainer.train(
         train_loader,
         evaluate_dataloader=dev_loader,
