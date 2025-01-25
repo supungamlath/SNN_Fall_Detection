@@ -1,40 +1,9 @@
 import numpy as np
-from snntorch import spikeplot as splt
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.subplots as sp
 
 
-# From Open Neuromorphic Seminar - Hands-On with snnTorch by Jason K. Eshraghian (www.ncg.ucsc.edu)
-def plot_snn_spikes(spk_in, spk1_rec, spk2_rec, num_steps, title):
-    # Generate Plots
-    fig, ax = plt.subplots(3, figsize=(8, 7), sharex=True, gridspec_kw={"height_ratios": [1, 1, 0.4]})
-
-    # Plot input spikes
-    splt.raster(spk_in[:, 0], ax[0], s=0.03, c="black")
-    ax[0].set_ylabel("Input Spikes")
-    ax[0].set_title(title)
-
-    # Plot hidden layer spikes
-    splt.raster(spk1_rec.reshape(num_steps, -1), ax[1], s=0.05, c="black")
-    ax[1].set_ylabel("Hidden Layer")
-
-    # Plot output spikes
-    splt.raster(spk2_rec.reshape(num_steps, -1), ax[2], c="black", marker="|")
-    ax[2].set_ylabel("Output Spikes")
-    ax[2].set_ylim([0, 10])
-
-    plt.show()
-
-
-# From Open Neuromorphic Seminar - Hands-On with snnTorch by Jason K. Eshraghian (www.ncg.ucsc.edu)
-def dvs_animator(spike_data):
-    fig, ax = plt.subplots()
-    anim = splt.animator((spike_data[:, 0] + spike_data[:, 1]), fig, ax)
-    return anim
-
-
-def visualize_snn_output(mem_rec, spk_rec, time_range=None, time_ticks=60):
+def visualize_snn_output(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
     """
     Visualizes the membrane potentials and spikes over time.
 
@@ -47,8 +16,8 @@ def visualize_snn_output(mem_rec, spk_rec, time_range=None, time_ticks=60):
 
     timesteps, num_neurons = mem_rec.shape
 
-    if not time_range:
-        time_range = [0, timesteps]
+    if not timestep_range:
+        timestep_range = [0, timesteps]
 
     time = list(range(timesteps))  # Define the shared time axis
 
@@ -58,14 +27,14 @@ def visualize_snn_output(mem_rec, spk_rec, time_range=None, time_ticks=60):
         mem_fig.add_trace(go.Scatter(x=time, y=mem_rec[:, neuron_idx], mode="lines", name=f"Neuron {neuron_idx}"))
 
     mem_fig.update_layout(
-        title="Membrane Potentials Over Time",
+        title="Membrane Potentials Over Timesteps",
         xaxis_title="Time (Timesteps)",
         yaxis_title="Membrane Potential",
-        legend=dict(orientation="h", x=0, y=-0.2),
+        legend=dict(orientation="h", x=0, y=-0.1),
         height=400,
         width=1000,
     )
-    mem_fig.update_xaxes(range=time_range, dtick=timesteps // time_ticks)
+    mem_fig.update_xaxes(range=timestep_range, dtick=timesteps // time_seconds)
 
     # Spikes Figure
     spk_fig = go.Figure()
@@ -82,14 +51,14 @@ def visualize_snn_output(mem_rec, spk_rec, time_range=None, time_ticks=60):
         )
 
     spk_fig.update_layout(
-        title="Spikes Over Time",
+        title="Spikes Over Timesteps",
         xaxis_title="Time (Timesteps)",
         yaxis_title="Neuron Index",
-        legend=dict(orientation="h", x=0, y=-0.5),
+        legend=dict(orientation="h", x=0, y=-0.4),
         height=250,
         width=1000,
     )
-    spk_fig.update_xaxes(range=time_range, dtick=timesteps // time_ticks)
+    spk_fig.update_xaxes(range=timestep_range, dtick=timesteps // time_seconds)
 
     spk_fig.update_yaxes(
         tickmode="array",
@@ -97,9 +66,108 @@ def visualize_snn_output(mem_rec, spk_rec, time_range=None, time_ticks=60):
         ticktext=[f"Neuron {i}" for i in range(num_neurons)],
     )
 
+    # Reduced Timesteps vs Spike Counts Figure
+    chunk_size = timesteps // time_seconds
+    spk_rec = spk_rec.reshape(time_seconds, chunk_size, num_neurons).sum(axis=1)
+
+    bar_fig = go.Figure()
+    for neuron_idx in range(num_neurons):
+        bar_fig.add_trace(
+            go.Bar(
+                x=list(range(1, time_seconds + 1)),
+                y=spk_rec[:, neuron_idx],
+                name=f"Neuron {neuron_idx}",
+            )
+        )
+
+    bar_fig.update_layout(
+        title="Spike Counts per Neuron Over Time",
+        xaxis_title="Time (Seconds)",
+        yaxis_title="Spike Count",
+        legend=dict(orientation="h", x=0, y=-0.1),
+        barmode="stack",
+        height=400,
+        width=1000,
+    )
+    bar_fig.update_xaxes(range=timestep_range, dtick=1)
+
     # Display figures
     mem_fig.show()
     spk_fig.show()
+    bar_fig.show()
+
+
+def plot_predictions_and_labels(spk_rec, true_labels, time_seconds=60):
+    """
+    Plots predictions vs ground truth and highlights incorrect classifications.
+
+    Parameters:
+        spk_rec (numpy.ndarray): Spike counts per neuron over reduced timesteps, shape (T, N).
+        true_labels (numpy.ndarray): True labels for each timestep, shape (T,).
+    """
+    timesteps, num_neurons = spk_rec.shape
+    chunk_size = timesteps // time_seconds
+    preds = spk_rec.reshape(time_seconds, chunk_size, num_neurons).sum(axis=1)
+
+    # Calculate predictions: neuron index with the maximum count in each timestep
+    predictions = np.argmax(preds, axis=1)
+
+    # Identify incorrect classifications
+    incorrect_mask = predictions != true_labels
+
+    # Plot predictions and ground truth
+    timesteps = np.arange(preds.shape[0])
+
+    fig = go.Figure()
+
+    # Add true labels
+    fig.add_trace(
+        go.Scatter(
+            x=timesteps,
+            y=true_labels,
+            mode="lines+markers",
+            name="Ground Truth",
+            marker=dict(size=8, color="blue", symbol="square-open"),
+            line=dict(color="blue"),
+        )
+    )
+
+    # Add predictions
+    fig.add_trace(
+        go.Scatter(
+            x=timesteps,
+            y=predictions,
+            mode="lines+markers",
+            name="Predictions",
+            marker=dict(size=8, color="green", symbol="circle-open"),
+            line=dict(color="green"),
+        )
+    )
+
+    # Highlight incorrect predictions
+    fig.add_trace(
+        go.Scatter(
+            x=timesteps[incorrect_mask],
+            y=predictions[incorrect_mask],
+            mode="markers",
+            name="Incorrect Predictions",
+            marker=dict(size=10, color="red", symbol="x"),
+        )
+    )
+
+    # Update layout
+    fig.update_layout(
+        title="Predictions vs Ground Truth",
+        xaxis_title="Reduced Timesteps",
+        yaxis_title="Class",
+        legend=dict(orientation="h", x=0, y=-0.8),
+        height=250,
+        width=1000,
+    )
+    fig.update_xaxes(range=[0, time_seconds], dtick=1)
+
+    # Show plot
+    fig.show()
 
 
 def visualize_events(
@@ -150,7 +218,7 @@ def visualize_events(
         fig.add_trace(
             go.Heatmap(
                 z=frame,
-                colorscale="Viridis",
+                colorscale="gray",
                 showscale=(i == 0),  # Show scale only on one plot
                 colorbar=dict(len=1.0, title="Intensity") if i == 0 else None,
                 zmin=zmin,
