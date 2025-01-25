@@ -89,7 +89,7 @@ def visualize_snn_output(mem_rec, spk_rec, timestep_range=None, time_seconds=60)
         height=400,
         width=1000,
     )
-    bar_fig.update_xaxes(range=timestep_range, dtick=1)
+    bar_fig.update_xaxes(range=[0, time_seconds], dtick=1)
 
     # Display figures
     mem_fig.show()
@@ -173,7 +173,7 @@ def plot_predictions_and_labels(spk_rec, true_labels, time_seconds=60):
 def visualize_events(
     data: np.ndarray,
     labels: np.ndarray,
-    plot_timesteps: int = None,
+    time_seconds: int = None,
 ):
     """
     Visualizes a 3D vector (timesteps, height, width) using Plotly with an option
@@ -182,15 +182,14 @@ def visualize_events(
     Parameters:
         data (np.ndarray): Input data of shape (timesteps, height, width).
         labels (np.ndarray): Labels for each timestep.
-        plot_timesteps (int): Number of timesteps to reduce to. If None, all timesteps are used.
+        time_seconds (int): Number of timesteps to reduce to. If None, all timesteps are used.
     """
     timesteps, width, height = data.shape
 
-    # Reshape and sum events to reduce timesteps if specified
-    if plot_timesteps is not None:
-        assert timesteps % plot_timesteps == 0, "Timesteps must be divisible by plot_timesteps."
-        group_size = timesteps // plot_timesteps
-        data = data.reshape(plot_timesteps, group_size, width, height).sum(axis=1)
+    # Reshape and sum events to reduce timesteps
+    assert timesteps % time_seconds == 0, "Timesteps must be divisible by time_seconds."
+    group_size = timesteps // time_seconds
+    data = data.reshape(time_seconds, group_size, width, height).sum(axis=1)
 
     timesteps = data.shape[0]  # Update timesteps after reduction
 
@@ -241,13 +240,13 @@ def visualize_events(
     fig.show()
 
 
-def visualize_input_grid(data, plot_timesteps=60, columns=10):
+def visualize_input_grid(data, time_seconds=60, columns=10):
     timesteps, height, width = data.shape
     # Reshape and average data to reduce timesteps
-    if plot_timesteps is not None:
-        assert timesteps % plot_timesteps == 0, "Timesteps must be divisible by plot_timesteps."
-        group_size = timesteps // plot_timesteps
-        data = data.reshape(plot_timesteps, group_size, height, width).mean(axis=1)
+    if time_seconds is not None:
+        assert timesteps % time_seconds == 0, "Timesteps must be divisible by time_seconds."
+        group_size = timesteps // time_seconds
+        data = data.reshape(time_seconds, group_size, height, width).mean(axis=1)
 
     timesteps = data.shape[0]  # Update timesteps after reduction
 
