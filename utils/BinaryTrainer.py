@@ -57,14 +57,13 @@ class BinaryTrainer:
                         x_local = x_local.to(self.model.device, self.model.dtype)
                         y_local = y_local.to(self.model.device, self.model.dtype)
 
-                        mem, spk = self.model.forward(x_local.to_dense())
-                        # mem = mem[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                        _, spk = self.model.forward(x_local.to_dense())
                         spk = spk[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).sum(dim=2)
 
                         # Get the max value for each second as the prediction
                         y_pred = torch.argmax(spk, dim=2)
 
-                        # Cross Entropy Loss function expects the input to be of shape (batch_size, classes, timesteps)
+                        # Cross Entropy Loss function expects the input to be of shape (batch_size, classes, time)
                         ce_loss = loss_fn(spk.permute(0, 2, 1), y_local.long())
 
                         dev_metrics.update(
@@ -86,8 +85,7 @@ class BinaryTrainer:
                 x_local = x_local.to(self.model.device, self.model.dtype)
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
-                mem, spk = self.model.forward(x_local.to_dense())
-                # mem = mem[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                _, spk = self.model.forward(x_local.to_dense())
                 spk = spk[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).sum(dim=2)
 
                 # Get the max value for each second as the prediction
@@ -130,8 +128,7 @@ class BinaryTrainer:
                 x_local = x_local.to(self.model.device, self.model.dtype)
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
-                mem, spk = self.model.forward(x_local.to_dense())
-                # mem = mem[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                _, spk = self.model.forward(x_local.to_dense())
                 spk = spk[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).sum(dim=2)
 
                 # Get the max value for each second as the prediction
