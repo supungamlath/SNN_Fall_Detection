@@ -12,6 +12,7 @@ class SpikingDataset(Dataset):
         time_duration=60.0,
         read_csv=True,
         camera1_only=False,
+        multiclass = False,
     ):
         self.root_dir = root_dir
         self.time_duration = time_duration
@@ -22,6 +23,11 @@ class SpikingDataset(Dataset):
         self.scaling_factor = 1.57
         self.camera1_only = camera1_only
 
+        if multiclass:
+            self.labels_csv = "labels_multiclass.csv"
+        else:
+            self.labels_csv = "labels.csv"
+
         if read_csv:
             labels = self.get_fall_flags()
             self.folder_names = list(labels.keys())
@@ -29,13 +35,13 @@ class SpikingDataset(Dataset):
 
     def get_fall_flags(self):
         """
-        Reads the labels.csv file and extracts the 60 fall flag values for each video.
+        Reads the labels CSV file and extracts the 60 fall flag values for each video.
 
         Returns:
             dict: A dictionary where keys are video names and values are lists of fall flags for each second.
         """
         # Read the CSV file
-        labels_file = os.path.join(self.root_dir, "labels.csv")
+        labels_file = os.path.join(self.root_dir, self.labels_csv)
         df = pd.read_csv(labels_file)
 
         # Initialize the result dictionary
@@ -265,6 +271,6 @@ class SpikingDataset(Dataset):
             }
         )
         df.to_csv(
-            os.path.join(self.root_dir, "labels.csv"),
+            os.path.join(self.root_dir, self.labels_csv),
             index=False,
         )

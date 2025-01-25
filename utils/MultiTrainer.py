@@ -35,9 +35,7 @@ class MultiTrainer:
     ):
         optimizer = torch.optim.Adamax(self.model.parameters(), lr=lr)
 
-        loss_fn = nn.CrossEntropyLoss(
-            weight=torch.tensor([1.0, dataset_bias_ratio]).to(self.model.device, self.model.dtype)
-        )
+        loss_fn = nn.CrossEntropyLoss()
 
         train_metrics = Metrics()
         dev_metrics = Metrics()
@@ -58,7 +56,7 @@ class MultiTrainer:
                         y_local = y_local.to(self.model.device, self.model.dtype)
 
                         output, _ = self.model.forward(x_local.to_dense())
-                        output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                        output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 12).mean(dim=2)
 
                         # Get the max value for each second as the prediction
                         y_pred = torch.argmax(output, dim=2)
@@ -86,7 +84,7 @@ class MultiTrainer:
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
                 output, spk_recs = self.model.forward(x_local.to_dense())
-                output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 12).mean(dim=2)
 
                 # Get the max value for each second as the prediction
                 y_pred = torch.argmax(output, dim=2)
@@ -132,7 +130,7 @@ class MultiTrainer:
                 y_local = y_local.to(self.model.device, self.model.dtype)
 
                 output, _ = self.model.forward(x_local.to_dense())
-                output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 2).mean(dim=2)
+                output = output[:, : self.nb_steps, :].reshape(-1, 60, self.chunk_size, 12).mean(dim=2)
 
                 # Get the max value for each second as the prediction
                 y_pred = torch.argmax(output, dim=2)
