@@ -81,7 +81,7 @@ def main():
         root_dir=dataset_dir,
         time_duration=dataset_params["time_duration"],
         camera1_only=dataset_params["camera1_only"],
-        multiclass=model_params["multiclass"]
+        multiclass=model_params["multiclass"],
     )
 
     # Splitting the dataset
@@ -129,7 +129,7 @@ def main():
     # )
 
     # Print model summary
-    summary(model, input_size=(training_params["batch_size"], model_params["nb_steps"], 240, 180))
+    # summary(model, input_size=(training_params["batch_size"], model_params["nb_steps"], 240, 180))
 
     # Creating DataLoader instances
     train_loader = SpikingDataLoader(
@@ -160,7 +160,7 @@ def main():
         trainer = MultiTrainer(model=model)
     else:
         trainer = BinaryTrainer(model=model)
-    
+
     trainer.train(
         train_loader,
         evaluate_dataloader=dev_loader,
