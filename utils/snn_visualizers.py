@@ -287,14 +287,19 @@ def visualize_input_grid(data, time_seconds=60, columns=10):
 
     fig.show()
 
-    
+
 def plot_correctness_heatmap(y_locals, y_preds):
+
+    # Set datatypes to int
+    y_locals = y_locals.astype(int)
+    y_preds = y_preds.astype(int)
+
     # Create a correctness mask: 1 if correct, 0 otherwise
     correct_mask = (y_locals == y_preds).astype(int)
 
     # Create a combined label for ground truth and predictions
     labels = np.array(
-        [[f"{gt}/{pred}" for gt, pred in zip(row_gt, row_pred)] for row_gt, row_pred in zip(y_locals, y_preds)]
+        [[f"{pred}/{gt}" for gt, pred in zip(row_gt, row_pred)] for row_gt, row_pred in zip(y_locals, y_preds)]
     )
 
     # Create a heatmap for correctness with labels
@@ -302,18 +307,22 @@ def plot_correctness_heatmap(y_locals, y_preds):
         data=go.Heatmap(
             z=correct_mask,
             colorscale=[[0, "red"], [1, "green"]],  # Red for incorrect, green for correct
-            text=labels,  # Show labels (ground truth/predictions)
+            showlegend=False,
+            showscale=False,
+            text=labels, 
             texttemplate="%{text}",  # Format to show the text
-            hoverinfo="z+text",  # Show both the correctness and the labels on hover
+            hoverinfo="y+text",  # Show both the correctness and the labels on hover
         )
     )
 
     fig.update_layout(
-        title="Correctness Heatmap with Ground Truth/Predictions",
+        title="Correctness of Predictions/Ground Truth",
         xaxis_title="Time (s)",
         yaxis_title="Samples",
         xaxis=dict(tickmode="linear"),
         yaxis=dict(tickmode="linear"),
+        height=1200,
+        width=1200,
     )
 
     fig.show()
