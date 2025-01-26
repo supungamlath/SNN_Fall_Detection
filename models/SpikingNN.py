@@ -159,8 +159,6 @@ class SpikingNN(nn.Module):
                 )
             )
         self.hidden_layers = nn.ModuleList(hidden_layers)
-        # Readout layer
-        # self.readout_layer = SpikingReadoutLayer(layer_sizes[-2], layer_sizes[-1], nb_steps, self.alpha, self.beta)
 
         # Move the model to the GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -173,8 +171,6 @@ class SpikingNN(nn.Module):
         spk = torch.flatten(spk, start_dim=-2)
         for hidden_layer in self.hidden_layers:
             spk, mem = hidden_layer(spk)
-        # Forward pass through the readout layer
-        # out = self.readout_layer(spk)
         return mem, spk
 
     def save(self, path):
