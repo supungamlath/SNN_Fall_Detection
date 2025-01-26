@@ -53,7 +53,8 @@ def visualize_events(
                 z=frame,
                 colorscale="gray",
                 showscale=(i == 0),  # Show scale only on one plot
-                colorbar=dict(len=1.0, title="Intensity") if i == 0 else None,
+                showlegend=False,
+                colorbar=dict(len=1.5, title="Intensity"),
                 zmin=zmin,
                 zmax=zmax,
             ),
@@ -64,10 +65,10 @@ def visualize_events(
     # Update layout
     fig.update_layout(
         title="Visualizing Vector Over Timesteps",
-        height=300,
-        width=timesteps * 250,
+        height=250,
+        width=timesteps * 150,
     )
-    fig.update_annotations(font_size=14)
+    fig.update_annotations(font_size=10)
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
 
@@ -122,7 +123,7 @@ def visualize_events_grid(data, time_seconds=60, columns=10):
     fig.show()
 
 
-def plot_snn_activity(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
+def plot_snn_activity(mem_rec, spk_rec, x_axis_range=None, time_seconds=60):
     """
     Visualizes the membrane potentials and spikes over time.
 
@@ -135,8 +136,8 @@ def plot_snn_activity(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
 
     timesteps, num_neurons = mem_rec.shape
 
-    if not timestep_range:
-        timestep_range = [0, timesteps]
+    if not x_axis_range:
+        x_axis_range = [-1, timesteps + 1]
 
     time = list(range(timesteps))  # Define the shared time axis
 
@@ -149,11 +150,11 @@ def plot_snn_activity(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
         title="Membrane Potentials Over Timesteps",
         xaxis_title="Time (Timesteps)",
         yaxis_title="Membrane Potential",
-        legend=dict(orientation="h", x=0, y=-0.1),
-        height=400,
+        legend=dict(orientation="h", x=0, y=-0.2),
+        height=500,
         width=1000,
     )
-    mem_fig.update_xaxes(range=timestep_range, dtick=timesteps // time_seconds)
+    mem_fig.update_xaxes(range=x_axis_range, dtick=timesteps // time_seconds)
 
     # Spikes Figure
     spk_fig = go.Figure()
@@ -173,11 +174,11 @@ def plot_snn_activity(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
         title="Spikes Over Timesteps",
         xaxis_title="Time (Timesteps)",
         yaxis_title="Neuron Index",
-        legend=dict(orientation="h", x=0, y=-0.4),
-        height=250,
+        legend=dict(orientation="h", x=0, y=-0.2),
+        height=500,
         width=1000,
     )
-    spk_fig.update_xaxes(range=timestep_range, dtick=timesteps // time_seconds)
+    spk_fig.update_xaxes(range=x_axis_range, dtick=timesteps // time_seconds)
 
     spk_fig.update_yaxes(
         tickmode="array",
@@ -186,8 +187,8 @@ def plot_snn_activity(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
     )
 
     # Reduced Timesteps vs Spike Counts Figure
-    chunk_size = timesteps // time_seconds
-    spk_rec = spk_rec.reshape(time_seconds, chunk_size, num_neurons).sum(axis=1)
+    timesteps_per_s = timesteps // time_seconds
+    spk_rec = spk_rec.reshape(time_seconds, timesteps_per_s, num_neurons).sum(axis=1)
 
     bar_fig = go.Figure()
     for neuron_idx in range(num_neurons):
@@ -203,17 +204,22 @@ def plot_snn_activity(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
         title="Spike Counts per Neuron Over Time",
         xaxis_title="Time (Seconds)",
         yaxis_title="Spike Count",
-        legend=dict(orientation="h", x=0, y=-0.1),
+        legend=dict(orientation="h", x=0, y=-0.2),
         barmode="stack",
-        height=400,
+        height=500,
         width=1000,
     )
-    bar_fig.update_xaxes(range=[0, time_seconds], dtick=1)
+    bar_fig.update_xaxes(range=[-1, time_seconds], dtick=1)
 
     # Display figures
     mem_fig.show()
     spk_fig.show()
     bar_fig.show()
+
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+import numpy as np
+
 
 
 def plot_predictions_and_labels(spk_rec, true_labels, time_seconds=60):
@@ -329,7 +335,15 @@ def plot_correctness_matrix(y_locals, y_preds):
     fig.show()
 
 
-def plot_confusion_matrix(y_locals, y_preds):
+def plot_confusion_matrix(y_locals, y_preds, class_labels):
+    """
+    Plots a confusion matrix heatmap.
+    
+    Parameters:
+        y_locals (numpy.ndarray): Ground truth labels.
+        y_preds (numpy.ndarray): Predicted labels.
+        class_labels (dict): A dictionary where keys are class indices and values are their meanings as strings.
+    """
     # Flatten arrays to compute confusion matrix
     y_locals_flat = y_locals.flatten()
     y_preds_flat = y_preds.flatten()
@@ -338,24 +352,192 @@ def plot_confusion_matrix(y_locals, y_preds):
     labels = np.unique(np.concatenate([y_locals_flat, y_preds_flat]))
     conf_matrix = confusion_matrix(y_locals_flat, y_preds_flat, labels=labels)
 
+    # Replace labels with their meanings
+    labels_with_meanings = [class_labels[label] if label in class_labels else f"Class {label}" for label in labels]
+
     # Create a heatmap for the confusion matrix
     fig = go.Figure(
         data=go.Heatmap(
             z=conf_matrix,
-            x=labels,  # Ground truth (columns)
-            y=labels,  # Predictions (rows)
+            x=labels_with_meanings,  # Ground truth (columns)
+            y=labels_with_meanings,  # Predictions (rows)
             colorscale="Viridis",
+            showscale=False,
             texttemplate="%{z}",  # Display count in each cell
             hovertemplate="Ground Truth: %{x}<br>Prediction: %{y}<br>Count: %{z}<extra></extra>",
         )
     )
 
     fig.update_layout(
-        title="Confusion Matrix Heatmap",
+        title="Confusion Matrix",
         xaxis_title="Ground Truth",
         yaxis_title="Predictions",
-        xaxis=dict(tickmode="array", tickvals=labels),
-        yaxis=dict(tickmode="array", tickvals=labels),
+        xaxis=dict(tickmode="array", tickvals=labels_with_meanings),
+        yaxis=dict(tickmode="array", tickvals=labels_with_meanings),
+        height=800,
+        width=800,
     )
 
+    fig.show()
+
+def plot_snn_activity_combined(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
+    """
+    Visualizes the membrane potentials with spikes marked on the same figure and spike counts over time.
+
+    Parameters:
+        mem_rec (numpy.ndarray): Membrane potentials of shape (T, N).
+        spk_rec (numpy.ndarray): Spikes of shape (T, N).
+        timestep_range (list or None): Range of timesteps to plot [start, end].
+        time_seconds (int): Total time in seconds for spike count visualization.
+    """
+
+    # Ensure the inputs are of the expected shape
+    assert mem_rec.shape == spk_rec.shape, "mem_rec and spk_rec must have the same shape"
+
+    timesteps, num_neurons = mem_rec.shape
+
+    if not timestep_range:
+        timestep_range = [0, timesteps]
+
+    time = list(range(timesteps))  # Define the shared time axis
+
+    # Combined Membrane Potentials and Spikes Figure
+    mem_spk_fig = go.Figure()
+    for neuron_idx in range(num_neurons):
+        # Add membrane potential curve
+        mem_spk_fig.add_trace(
+            go.Scatter(
+                x=time,
+                y=mem_rec[:, neuron_idx],
+                mode="lines",
+                name=f"Neuron {neuron_idx} Potential",
+            )
+        )
+
+        # Add spike events as markers
+        spike_times = np.where(spk_rec[:, neuron_idx] == 1.0)[0]
+        mem_spk_fig.add_trace(
+            go.Scatter(
+                x=spike_times,
+                y=mem_rec[spike_times, neuron_idx],
+                mode="markers",
+                name=f"Neuron {neuron_idx} Spikes",
+                marker=dict(symbol="circle", size=6),
+            )
+        )
+
+    mem_spk_fig.update_layout(
+        title="Membrane Potentials with Spike Events",
+        xaxis_title="Time (Timesteps)",
+        yaxis_title="Membrane Potential",
+        legend=dict(orientation="h", x=0, y=-0.2),
+        height=500,
+        width=1000,
+    )
+    mem_spk_fig.update_xaxes(range=timestep_range, dtick=timesteps // time_seconds)
+
+    # Reduced Timesteps vs Spike Counts Figure
+    chunk_size = timesteps // time_seconds
+    spk_rec = spk_rec.reshape(time_seconds, chunk_size, num_neurons).sum(axis=1)
+
+    bar_fig = go.Figure()
+    for neuron_idx in range(num_neurons):
+        bar_fig.add_trace(
+            go.Bar(
+                x=list(range(0, time_seconds)),
+                y=spk_rec[:, neuron_idx],
+                name=f"Neuron {neuron_idx}",
+            )
+        )
+
+    bar_fig.update_layout(
+        title="Spike Counts per Neuron Over Time",
+        xaxis_title="Time (Seconds)",
+        yaxis_title="Spike Count",
+        legend=dict(orientation="h", x=0, y=-0.1),
+        barmode="stack",
+        height=400,
+        width=1000,
+    )
+    bar_fig.update_xaxes(range=[0, time_seconds], dtick=1)
+
+    # Display figures
+    mem_spk_fig.show()
+    bar_fig.show()
+
+def plot_snn_activity_shared_xaxis(mem_rec, spk_rec, time_seconds=60):
+    """
+    Visualizes the membrane potentials and spikes over time in a single figure
+    with shared x-axes and dual x-axis (timesteps and seconds).
+
+    Parameters:
+        mem_rec (numpy.ndarray): Membrane potentials of shape (T, N).
+        spk_rec (numpy.ndarray): Spikes of shape (T, N).
+        time_seconds (int): Total simulation time in seconds.
+    """
+    # Ensure the inputs are of the expected shape
+    assert mem_rec.shape == spk_rec.shape, "mem_rec and spk_rec must have the same shape"
+
+    timesteps, num_neurons = mem_rec.shape
+    time = np.arange(timesteps)  # Define the shared time axis
+
+    # Create the shared figure
+    fig = make_subplots(rows=2, cols=1, vertical_spacing=0.1,
+        subplot_titles=("Membrane Potentials and Spikes", "Spike Counts per Second")
+    )
+    # print(fig.layout)
+
+    for neuron_idx in range(num_neurons):
+        # Add membrane potential curve
+        fig.add_trace(
+            go.Scatter(
+                x=time,
+                y=mem_rec[:, neuron_idx],
+                mode="lines",
+                name=f"Neuron {neuron_idx} Potential",
+            ), row=1,col=1
+        )
+
+        # Add spike events as markers
+        spike_times = np.where(spk_rec[:, neuron_idx] == 1.0)[0]
+        fig.add_trace(
+            go.Scatter(
+                x=spike_times,
+                y=mem_rec[spike_times, neuron_idx],
+                mode="markers",
+                name=f"Neuron {neuron_idx} Spikes",
+                marker=dict(symbol="circle", size=6),
+            ), row=1,col=1
+        )
+
+    timesteps_per_s = timesteps // time_seconds
+    spk_rec_r = spk_rec.reshape(time_seconds, timesteps_per_s, num_neurons).sum(axis=1)
+    for neuron_idx in range(num_neurons):
+        fig.add_trace(
+            go.Bar(
+                x=list(range(0, time_seconds)),
+                y=spk_rec_r[:, neuron_idx],
+                name=f"Neuron {neuron_idx}",
+                xaxis="x2"
+            ), row=2,col=1
+        )
+
+    fig.update_layout(
+        barmode="stack",
+        xaxis=dict(
+            title='Timesteps',
+            domain=[0, 1],
+            anchor='y'
+        ),
+        xaxis2=dict(
+            title='Time (Seconds)',
+            domain=[0, 1],
+            anchor='y',
+            overlaying='x',
+            side='top'
+        ),
+        width=1000,
+        height=1200,
+    )
+    # Show the figure
     fig.show()
