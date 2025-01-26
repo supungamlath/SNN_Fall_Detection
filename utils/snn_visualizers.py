@@ -286,3 +286,34 @@ def visualize_input_grid(data, time_seconds=60, columns=10):
     fig.update_yaxes(visible=False)  # Hide y-axes
 
     fig.show()
+
+    
+def plot_correctness_heatmap(y_locals, y_preds):
+    # Create a correctness mask: 1 if correct, 0 otherwise
+    correct_mask = (y_locals == y_preds).astype(int)
+
+    # Create a combined label for ground truth and predictions
+    labels = np.array(
+        [[f"{gt}/{pred}" for gt, pred in zip(row_gt, row_pred)] for row_gt, row_pred in zip(y_locals, y_preds)]
+    )
+
+    # Create a heatmap for correctness with labels
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=correct_mask,
+            colorscale=[[0, "red"], [1, "green"]],  # Red for incorrect, green for correct
+            text=labels,  # Show labels (ground truth/predictions)
+            texttemplate="%{text}",  # Format to show the text
+            hoverinfo="z+text",  # Show both the correctness and the labels on hover
+        )
+    )
+
+    fig.update_layout(
+        title="Correctness Heatmap with Ground Truth/Predictions",
+        xaxis_title="Time (s)",
+        yaxis_title="Samples",
+        xaxis=dict(tickmode="linear"),
+        yaxis=dict(tickmode="linear"),
+    )
+
+    fig.show()
