@@ -7,8 +7,6 @@ import numpy as np
 class SNNTorchConv(nn.Module):
     def __init__(
         self,
-        num_inputs: int,
-        num_hidden: int,
         num_outputs: int,
         nb_steps: int,
         time_step=1e-2,
@@ -21,13 +19,14 @@ class SNNTorchConv(nn.Module):
         print(f"LIF Parameter beta: {self.beta}")
 
         # Initialize layers
-        self.conv1 = nn.Conv2d(1, 8, 5, padding="same")
+        # Input shape: [batch_size, 1, 240, 180]
+        self.conv1 = nn.Conv2d(1, 4, 5, padding="same")  # Output shape: [batch_size, 4, 240, 180]
+        self.mp1 = nn.MaxPool2d(2)  # Output shape: [batch_size, 4, 120, 90]
         self.lif1 = snn.Leaky(beta=self.beta)
-        self.mp1 = nn.MaxPool2d(2)
-        self.conv2 = nn.Conv2d(8, 24, 5, padding="same")
+        self.conv2 = nn.Conv2d(4, 4, 5, padding="same")  # Output shape: [batch_size, 4, 120, 90]
+        self.mp2 = nn.MaxPool2d(2)  # Output shape: [batch_size, 4, 60, 45]
         self.lif2 = snn.Leaky(beta=self.beta)
-        self.mp2 = nn.MaxPool2d(2)
-        self.fc = nn.Linear(7 * 7 * 24, 10)
+        self.fc = nn.Linear(4 * 60 * 45, num_outputs)
         self.lif3 = snn.Leaky(beta=self.beta)
 
         # Move the model to the GPU if available
@@ -46,6 +45,9 @@ class SNNTorchConv(nn.Module):
         spk3_rec = []
         mem3_rec = []
 
+        # Add channel dimension to input: [batch_size, timesteps, width, height] -> [batch_size, timesteps, 1, width, height]
+        x = x.unsqueeze(2)
+
         for step in range(self.nb_steps):
             cur1 = self.conv1(x[:, step])
             spk1, mem1 = self.lif1(self.mp1(cur1), mem1)
@@ -58,3 +60,9 @@ class SNNTorchConv(nn.Module):
             mem3_rec.append(mem3)
 
         return torch.stack(mem3_rec, dim=1), torch.stack(spk3_rec, dim=1)
+
+    def save(self, path):
+        torch.save(self.state_dict(), path)
+
+    def load(self, path):
+        self.load_state_dict(torch.load(path, weights_only=True))
