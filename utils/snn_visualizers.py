@@ -1,9 +1,128 @@
 import numpy as np
 import plotly.graph_objects as go
 import plotly.subplots as sp
+from sklearn.metrics import confusion_matrix
 
 
-def visualize_snn_output(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
+def visualize_events(
+    data: np.ndarray,
+    labels: np.ndarray,
+    time_seconds: int = None,
+):
+    """
+    Visualizes a 3D vector (timesteps, height, width) using Plotly with an option
+    to reduce the timesteps and display averaged frames. Ensures all plots share the same intensity scale.
+
+    Parameters:
+        data (np.ndarray): Input data of shape (timesteps, height, width).
+        labels (np.ndarray): Labels for each timestep.
+        time_seconds (int): Number of timesteps to reduce to. If None, all timesteps are used.
+    """
+    timesteps, width, height = data.shape
+
+    # Reshape and sum events to reduce timesteps
+    assert timesteps % time_seconds == 0, "Timesteps must be divisible by time_seconds."
+    group_size = timesteps // time_seconds
+    data = data.reshape(time_seconds, group_size, width, height).sum(axis=1)
+
+    timesteps = data.shape[0]  # Update timesteps after reduction
+
+    # Validate labels
+    assert len(labels) == timesteps, "Number of labels must match the number of timesteps."
+
+    # Determine global min and max values for the intensity scale
+    zmin = data.min()
+    zmax = data.max()
+
+    # Create a subplot grid
+    fig = sp.make_subplots(
+        rows=1,
+        cols=timesteps,
+        subplot_titles=[
+            f"Timestamp: {i * group_size} - {(i+1) * group_size}<br> Label: {int(labels[i])}" for i in range(timesteps)
+        ],
+        horizontal_spacing=0.0005,
+    )
+
+    # Add frames to the subplot
+    for i in range(timesteps):
+        frame = np.rot90(data[i])  # Plotly expects the data to be rotated
+
+        fig.add_trace(
+            go.Heatmap(
+                z=frame,
+                colorscale="gray",
+                showscale=(i == 0),  # Show scale only on one plot
+                colorbar=dict(len=1.0, title="Intensity") if i == 0 else None,
+                zmin=zmin,
+                zmax=zmax,
+            ),
+            row=1,
+            col=i + 1,
+        )
+
+    # Update layout
+    fig.update_layout(
+        title="Visualizing Vector Over Timesteps",
+        height=300,
+        width=timesteps * 250,
+    )
+    fig.update_annotations(font_size=14)
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+
+    fig.show()
+
+
+def visualize_events_grid(data, time_seconds=60, columns=10):
+    timesteps, height, width = data.shape
+    # Reshape and average data to reduce timesteps
+    if time_seconds is not None:
+        assert timesteps % time_seconds == 0, "Timesteps must be divisible by time_seconds."
+        group_size = timesteps // time_seconds
+        data = data.reshape(time_seconds, group_size, height, width).mean(axis=1)
+
+    timesteps = data.shape[0]  # Update timesteps after reduction
+
+    # Define zmin and zmax for legend
+    zmin = np.min(data)
+    zmax = np.max(data)
+
+    # Create a subplot grid
+    rows = int(np.ceil(timesteps / columns))
+    fig = sp.make_subplots(
+        rows=rows, cols=columns, subplot_titles=[f"Timestep {i*group_size}" for i in range(timesteps)]
+    )
+
+    for i in range(timesteps):
+        row = i // columns + 1
+        col = i % columns + 1
+        fig.add_trace(
+            go.Heatmap(
+                z=np.flipud(data[i]),
+                colorscale="Viridis",
+                colorbar=dict(len=1.0, title="Intensity"),
+                zmin=zmin,
+                zmax=zmax,
+            ),
+            row=row,
+            col=col,
+        )
+
+    fig.update_layout(
+        title="Heatmap of Images at Every 25 Timesteps",
+        height=600,
+        width=1000,
+        font=dict(size=10),
+    )
+    fig.update_annotations(font_size=10)
+    fig.update_xaxes(visible=False)  # Hide x-axes
+    fig.update_yaxes(visible=False)  # Hide y-axes
+
+    fig.show()
+
+
+def plot_snn_activity(mem_rec, spk_rec, timestep_range=None, time_seconds=60):
     """
     Visualizes the membrane potentials and spikes over time.
 
@@ -170,125 +289,7 @@ def plot_predictions_and_labels(spk_rec, true_labels, time_seconds=60):
     fig.show()
 
 
-def visualize_events(
-    data: np.ndarray,
-    labels: np.ndarray,
-    time_seconds: int = None,
-):
-    """
-    Visualizes a 3D vector (timesteps, height, width) using Plotly with an option
-    to reduce the timesteps and display averaged frames. Ensures all plots share the same intensity scale.
-
-    Parameters:
-        data (np.ndarray): Input data of shape (timesteps, height, width).
-        labels (np.ndarray): Labels for each timestep.
-        time_seconds (int): Number of timesteps to reduce to. If None, all timesteps are used.
-    """
-    timesteps, width, height = data.shape
-
-    # Reshape and sum events to reduce timesteps
-    assert timesteps % time_seconds == 0, "Timesteps must be divisible by time_seconds."
-    group_size = timesteps // time_seconds
-    data = data.reshape(time_seconds, group_size, width, height).sum(axis=1)
-
-    timesteps = data.shape[0]  # Update timesteps after reduction
-
-    # Validate labels
-    assert len(labels) == timesteps, "Number of labels must match the number of timesteps."
-
-    # Determine global min and max values for the intensity scale
-    zmin = data.min()
-    zmax = data.max()
-
-    # Create a subplot grid
-    fig = sp.make_subplots(
-        rows=1,
-        cols=timesteps,
-        subplot_titles=[
-            f"Timestamp: {i * group_size} - {(i+1) * group_size}<br> Label: {int(labels[i])}" for i in range(timesteps)
-        ],
-        horizontal_spacing=0.0005,
-    )
-
-    # Add frames to the subplot
-    for i in range(timesteps):
-        frame = np.rot90(data[i])  # Plotly expects the data to be rotated
-
-        fig.add_trace(
-            go.Heatmap(
-                z=frame,
-                colorscale="gray",
-                showscale=(i == 0),  # Show scale only on one plot
-                colorbar=dict(len=1.0, title="Intensity") if i == 0 else None,
-                zmin=zmin,
-                zmax=zmax,
-            ),
-            row=1,
-            col=i + 1,
-        )
-
-    # Update layout
-    fig.update_layout(
-        title="Visualizing Vector Over Timesteps",
-        height=300,
-        width=timesteps * 250,
-    )
-    fig.update_annotations(font_size=14)
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False)
-
-    fig.show()
-
-
-def visualize_input_grid(data, time_seconds=60, columns=10):
-    timesteps, height, width = data.shape
-    # Reshape and average data to reduce timesteps
-    if time_seconds is not None:
-        assert timesteps % time_seconds == 0, "Timesteps must be divisible by time_seconds."
-        group_size = timesteps // time_seconds
-        data = data.reshape(time_seconds, group_size, height, width).mean(axis=1)
-
-    timesteps = data.shape[0]  # Update timesteps after reduction
-
-    # Define zmin and zmax for legend
-    zmin = np.min(data)
-    zmax = np.max(data)
-
-    # Create a subplot grid
-    rows = int(np.ceil(timesteps / columns))
-    fig = sp.make_subplots(
-        rows=rows, cols=columns, subplot_titles=[f"Timestep {i*group_size}" for i in range(timesteps)]
-    )
-
-    for i in range(timesteps):
-        row = i // columns + 1
-        col = i % columns + 1
-        fig.add_trace(
-            go.Heatmap(
-                z=np.flipud(data[i]),
-                colorscale="Viridis",
-                colorbar=dict(len=1.0, title="Intensity"),
-                zmin=zmin,
-                zmax=zmax,
-            ),
-            row=row,
-            col=col,
-        )
-
-    fig.update_layout(
-        title="Heatmap of Images at Every 25 Timesteps",
-        height=600,
-        width=1000,
-        font=dict(size=10),
-    )
-    fig.update_annotations(font_size=10)
-    fig.update_xaxes(visible=False)  # Hide x-axes
-    fig.update_yaxes(visible=False)  # Hide y-axes
-
-    fig.show()
-
-
-def plot_correctness_heatmap(y_locals, y_preds):
+def plot_correctness_matrix(y_locals, y_preds):
 
     # Set datatypes to int
     y_locals = y_locals.astype(int)
@@ -309,7 +310,7 @@ def plot_correctness_heatmap(y_locals, y_preds):
             colorscale=[[0, "red"], [1, "green"]],  # Red for incorrect, green for correct
             showlegend=False,
             showscale=False,
-            text=labels, 
+            text=labels,
             texttemplate="%{text}",  # Format to show the text
             hoverinfo="y+text",  # Show both the correctness and the labels on hover
         )
@@ -323,6 +324,38 @@ def plot_correctness_heatmap(y_locals, y_preds):
         yaxis=dict(tickmode="linear"),
         height=1200,
         width=1200,
+    )
+
+    fig.show()
+
+
+def plot_confusion_matrix(y_locals, y_preds):
+    # Flatten arrays to compute confusion matrix
+    y_locals_flat = y_locals.flatten()
+    y_preds_flat = y_preds.flatten()
+
+    # Compute confusion matrix
+    labels = np.unique(np.concatenate([y_locals_flat, y_preds_flat]))
+    conf_matrix = confusion_matrix(y_locals_flat, y_preds_flat, labels=labels)
+
+    # Create a heatmap for the confusion matrix
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=conf_matrix,
+            x=labels,  # Ground truth (columns)
+            y=labels,  # Predictions (rows)
+            colorscale="Viridis",
+            texttemplate="%{z}",  # Display count in each cell
+            hovertemplate="Ground Truth: %{x}<br>Prediction: %{y}<br>Count: %{z}<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title="Confusion Matrix Heatmap",
+        xaxis_title="Ground Truth",
+        yaxis_title="Predictions",
+        xaxis=dict(tickmode="array", tickvals=labels),
+        yaxis=dict(tickmode="array", tickvals=labels),
     )
 
     fig.show()
