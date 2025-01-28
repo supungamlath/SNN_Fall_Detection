@@ -18,17 +18,17 @@ from utils.clearml_helpers import report_metrics
 
 
 def main():
-    # Init ClearML project
-    task = Task.init(
-        project_name="NeuroFall", task_name="model_training", output_uri=True, auto_resource_monitoring=False
-    )
-
     # Load configuration
     config = configparser.ConfigParser()
     config.read("config.txt")
+    model_name = config["MODEL"]["name"]
+
+    # Init ClearML project
+    task = Task.init(
+        project_name="NeuroFall", task_name=model_name, output_uri=True, auto_resource_monitoring=False
+    )
 
     # Read model parameters
-    model_name = config["MODEL"]["name"]
     model_params = {
         "hidden_layers": list(map(int, config["MODEL"]["hidden_layers"].split(","))),
         "tau_mem": float(config["MODEL"]["tau_mem"]),
@@ -36,6 +36,7 @@ def main():
         "nb_steps": int(config["MODEL"]["nb_steps"]),
         "multiclass": config.getboolean("MODEL", "multiclass"),
     }
+    last_layer_size = 12 if model_params["multiclass"] else 2
     task.connect(model_params, name="Model Parameters")
 
     # Read training parameters
@@ -91,18 +92,18 @@ def main():
     else:
         raise ValueError("Invalid value for split_by parameter")
 
-    model = SpikingNN(
-        layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [12 if model_params["multiclass"] else 2],
-        nb_steps=model_params["nb_steps"],
-        time_step=dataset_params["time_duration"] / model_params["nb_steps"],
-        tau_mem=model_params["tau_mem"] * 1e-3,
-        tau_syn=model_params["tau_syn"] * 1e-3,
-    )
+    # model = SpikingNN(
+    #     layer_sizes=[dataset.nb_pixels] + model_params["hidden_layers"] + [last_layer_size],
+    #     nb_steps=model_params["nb_steps"],
+    #     time_step=dataset_params["time_duration"] / model_params["nb_steps"],
+    #     tau_mem=model_params["tau_mem"] * 1e-3,
+    #     tau_syn=model_params["tau_syn"] * 1e-3,
+    # )
 
     # model = SNNTorchLeaky(
     #     num_inputs=dataset.nb_pixels,
     #     num_hidden=250,
-    #     num_outputs=2,
+    #     num_outputs=last_layer_size2,
     #     nb_steps=model_params["nb_steps"],
     #     time_step=dataset_params["time_duration"] / model_params["nb_steps"],
     #     tau_mem=model_params["tau_mem"] * 1e-3,
@@ -111,21 +112,19 @@ def main():
     # model = SNNTorchSyn(
     #     num_inputs=dataset.nb_pixels,
     #     num_hidden=250,
-    #     num_outputs=2,
+    #     num_outputs=last_layer_size,
     #     nb_steps=model_params["nb_steps"],
     #     time_step=dataset_params["time_duration"] / model_params["nb_steps"],
     #     tau_mem=model_params["tau_mem"] * 1e-3,
     #     tau_syn=model_params["tau_syn"] * 1e-3,
     # )
 
-    # model = SNNTorchConv(
-    #     num_inputs=dataset.nb_pixels,
-    #     num_hidden=250,
-    #     num_outputs=2,
-    #     nb_steps=model_params["nb_steps"],
-    #     time_step=dataset_params["time_duration"] / model_params["nb_steps"],
-    #     tau_mem=model_params["tau_mem"] * 1e-3,
-    # )
+    model = SNNTorchConv(
+        num_outputs=last_layer_size,
+        nb_steps=model_params["nb_steps"],
+        time_step=dataset_params["time_duration"] / model_params["nb_steps"],
+        tau_mem=model_params["tau_mem"] * 1e-3,
+    )
 
     # Creating DataLoader instances
     train_loader = SpikingDataLoader(
