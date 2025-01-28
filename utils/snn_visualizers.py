@@ -3,6 +3,12 @@ import plotly.graph_objects as go
 import plotly.subplots as sp
 from sklearn.metrics import confusion_matrix
 
+config = {
+    "toImageButtonOptions": {
+        "format": "svg",  # one of png, svg, jpeg, webp
+    }
+}
+
 
 def visualize_events(
     data: np.ndarray,
@@ -38,9 +44,7 @@ def visualize_events(
     fig = sp.make_subplots(
         rows=1,
         cols=timesteps,
-        subplot_titles=[
-            f"Timestamp: {i * group_size} - {(i+1) * group_size}<br> Label: {int(labels[i])}" for i in range(timesteps)
-        ],
+        subplot_titles=[f"Label: {int(labels[i])}" for i in range(timesteps)],
         horizontal_spacing=0.0005,
     )
 
@@ -62,17 +66,24 @@ def visualize_events(
             col=i + 1,
         )
 
+        # Set axis constraints for each subplot
+        fig.update_yaxes(
+            scaleanchor=f"x{i + 1}",  # Tie y-axis scale to x-axis scale
+            row=1,
+            col=i + 1,
+        )
+
     # Update layout
     fig.update_layout(
-        title="Visualizing Vector Over Timesteps",
+        title="Ground Truth",
         height=250,
-        width=timesteps * 150,
+        width=timesteps * 100,
     )
-    fig.update_annotations(font_size=10)
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False)
+    fig.update_annotations(font_size=14)
+    fig.update_xaxes(visible=False, showgrid=False)
+    fig.update_yaxes(visible=False, showgrid=False)
 
-    fig.show()
+    fig.show(config=config)
 
 
 def visualize_events_grid(data, time_seconds=60, columns=10):
@@ -120,7 +131,7 @@ def visualize_events_grid(data, time_seconds=60, columns=10):
     fig.update_xaxes(visible=False)  # Hide x-axes
     fig.update_yaxes(visible=False)  # Hide y-axes
 
-    fig.show()
+    fig.show(config=config)
 
 
 def plot_snn_activity(mem_rec, spk_rec, timestep_axis_range=[0, 1500], time_axis_range=[0, 60], time_seconds=60):
@@ -209,9 +220,9 @@ def plot_snn_activity(mem_rec, spk_rec, timestep_axis_range=[0, 1500], time_axis
     spk_counts_fig.update_xaxes(range=time_axis_range, dtick=1)
 
     # Display figures
-    mem_fig.show()
-    spk_fig.show()
-    spk_counts_fig.show()
+    mem_fig.show(config=config)
+    spk_fig.show(config=config)
+    spk_counts_fig.show(config=config)
 
 
 def plot_snn_activity_combined(
@@ -300,8 +311,8 @@ def plot_snn_activity_combined(
     spk_counts_fig.update_xaxes(range=time_axis_range, dtick=1)
 
     # Display figures
-    mem_spk_fig.show()
-    spk_counts_fig.show()
+    mem_spk_fig.show(config=config)
+    spk_counts_fig.show(config=config)
 
 
 def plot_predictions_and_labels(spk_rec, true_labels, time_axis_range=[0, 60], time_seconds=60):
@@ -375,7 +386,7 @@ def plot_predictions_and_labels(spk_rec, true_labels, time_axis_range=[0, 60], t
     fig.update_yaxes(dtick=1)
 
     # Show plot
-    fig.show()
+    fig.show(config=config)
 
 
 def plot_correctness_matrix(y_locals, y_preds):
@@ -415,7 +426,7 @@ def plot_correctness_matrix(y_locals, y_preds):
         width=1200,
     )
 
-    fig.show()
+    fig.show(config=config)
 
 
 def plot_confusion_matrix(y_locals, y_preds, class_labels):
@@ -453,12 +464,11 @@ def plot_confusion_matrix(y_locals, y_preds, class_labels):
 
     fig.update_layout(
         title="Confusion Matrix",
-        xaxis_title="Ground Truth",
-        yaxis_title="Predictions",
+        xaxis_title="Predictions",
+        yaxis_title="Ground Truth",
         xaxis=dict(tickmode="array", tickvals=labels_with_meanings),
         yaxis=dict(tickmode="array", tickvals=labels_with_meanings),
         height=800,
         width=800,
     )
-
-    fig.show()
+    fig.show(config=config)
