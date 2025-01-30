@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
 import plotly.subplots as sp
@@ -447,28 +448,100 @@ def plot_confusion_matrix(y_locals, y_preds, class_labels):
     conf_matrix = confusion_matrix(y_locals_flat, y_preds_flat, labels=labels)
 
     # Replace labels with their meanings
-    labels_with_meanings = [class_labels[label] if label in class_labels else f"Class {label}" for label in labels]
+    labels_with_meanings = [class_labels.get(label, f"Class {label}") for label in labels]
 
     # Create a heatmap for the confusion matrix
     fig = go.Figure(
         data=go.Heatmap(
             z=conf_matrix,
-            x=labels_with_meanings,  # Ground truth (columns)
-            y=labels_with_meanings,  # Predictions (rows)
-            colorscale="Viridis",
+            x=labels_with_meanings,
+            y=labels_with_meanings,
             showscale=False,
-            texttemplate="%{z}",  # Display count in each cell
+            texttemplate="%{z:d}",
+            textfont={"color": "white"},  # Make text white for better visibility
             hovertemplate="Ground Truth: %{x}<br>Prediction: %{y}<br>Count: %{z}<extra></extra>",
+            zhoverformat=".0f"
         )
     )
 
     fig.update_layout(
-        title="Confusion Matrix",
+        title={
+            'text': "Confusion Matrix",
+            'y': 0.95,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
         xaxis_title="Predictions",
         yaxis_title="Ground Truth",
-        xaxis=dict(tickmode="array", tickvals=labels_with_meanings),
-        yaxis=dict(tickmode="array", tickvals=labels_with_meanings),
+        xaxis=dict(
+            tickmode="array", 
+            tickvals=labels_with_meanings,
+            tickangle=45  
+        ),
+        yaxis=dict(
+            tickmode="array", 
+            tickvals=labels_with_meanings
+        ),
         height=800,
         width=800,
     )
     fig.show(config=config)
+
+def plot_confusion_colored_matrix(y_true, y_pred, class_labels, colors):
+    """
+    Plots a confusion matrix heatmap with a custom color matrix.
+
+    Parameters:
+        y_true (numpy.ndarray): Ground truth labels.
+        y_pred (numpy.ndarray): Predicted labels.
+        class_labels (dict): A dictionary mapping class indices to their names.
+        colors (list of list): A color matrix corresponding to the confusion matrix cells.
+    """
+    # Flatten arrays to compute confusion matrix
+    y_locals_flat = y_true.flatten()
+    y_preds_flat = y_pred.flatten()
+
+    # Compute confusion matrix
+    labels = np.unique(np.concatenate([y_locals_flat, y_preds_flat]))
+    conf_matrix = confusion_matrix(y_locals_flat, y_preds_flat, labels=labels)
+
+    # Ensure colors matrix matches the shape of the confusion matrix
+    if len(colors) != conf_matrix.shape[0] or len(colors[0]) != conf_matrix.shape[1]:
+        raise ValueError("The provided color matrix does not match the shape of the confusion matrix.")
+
+    # Replace labels with their meanings
+    labels_with_meanings = [class_labels.get(label, f"Class {label}") for label in labels]
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    # Draw each cell with the appropriate color
+    for i in range(conf_matrix.shape[0]):
+        for j in range(conf_matrix.shape[1]):
+            rect = plt.Rectangle((j, i), 1, 1, facecolor=colors[i][j], edgecolor='black')
+            ax.add_patch(rect)
+            ax.text(j + 0.5, i + 0.5, str(conf_matrix[i, j]), 
+                    ha="center", va="center", fontsize=14, 
+                    color="white" if colors[i][j] != "white" else "black")
+
+    # Set axis labels and ticks
+    ax.set_xticks(np.arange(len(labels_with_meanings)) + 0.5)
+    ax.set_yticks(np.arange(len(labels_with_meanings)) + 0.5)
+    ax.set_xticklabels(labels_with_meanings, rotation=45, ha="right")
+    ax.set_yticklabels(labels_with_meanings)
+    ax.set_xlim(0, conf_matrix.shape[1])
+    ax.set_ylim(0, conf_matrix.shape[0])
+
+    # Adjusting tick positions
+    ax.set_xticks(np.arange(len(labels_with_meanings)), minor=True)
+    ax.set_yticks(np.arange(len(labels_with_meanings)), minor=True)
+    ax.grid(which="minor", color="black", linestyle='-', linewidth=1)
+    ax.tick_params(which="minor", size=0)
+
+    # Labels
+    ax.set_xlabel("Predictions")
+    ax.set_ylabel("Ground Truth")
+    ax.set_title("Confusion Matrix")
+
+    plt.show()
