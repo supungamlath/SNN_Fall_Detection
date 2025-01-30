@@ -34,8 +34,8 @@ def main():
         "nb_steps": int(config["MODEL"]["nb_steps"]),
         "multiclass": config.getboolean("MODEL", "multiclass"),
     }
-    last_layer_size = 12 if model_params["multiclass"] else 2
     task.connect(model_params, name="Model Parameters")
+    last_layer_size = 12 if model_params["multiclass"] else 2
 
     # Read training parameters
     training_params = {
