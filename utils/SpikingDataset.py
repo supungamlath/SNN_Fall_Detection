@@ -53,7 +53,7 @@ class SpikingDataset(Dataset):
             video_name = row["name"]
             if self.camera1_only and "Camera1" not in video_name:
                 continue
-            fall_flags = [row[f"window_{i}"] for i in range(60)]
+            fall_flags = [row[f"window_{i+1}"] for i in range(60)]
 
             # Add to the dictionary
             fall_flags_dict[video_name] = fall_flags
