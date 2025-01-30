@@ -168,7 +168,7 @@ def main():
     )
 
     # Save the model
-    model.save(model_save_file)
+    model.save(model_dir / f"{model_name}.pth")
 
     # Test the model
     test_metrics_dict = trainer.test(test_loader)
