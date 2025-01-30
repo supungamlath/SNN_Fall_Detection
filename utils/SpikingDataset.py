@@ -24,9 +24,9 @@ class SpikingDataset(Dataset):
         self.camera1_only = camera1_only
 
         if multiclass:
-            self.labels_csv = "labels_multiclass.csv"
+            self.labels_csv = "labels_multiclass_w1.0.csv"
         else:
-            self.labels_csv = "labels.csv"
+            self.labels_csv = "labels_binary_w1.0.csv"
 
         if read_csv:
             labels = self.get_fall_flags()
