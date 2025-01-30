@@ -63,7 +63,6 @@ def main():
         root_folder = Path(os.getcwd())
     dataset_dir = root_folder / config["DATASET"]["data_dir"]
     model_dir = root_folder / config["MODEL"]["save_dir"]
-    model_save_file = model_dir / f"{model_name}.pth"
 
     # Create directories if they don't exist
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -144,6 +143,7 @@ def main():
 
     def training_epoch_callback(train_metrics, epoch):
         if epoch % 3 == 0:
+            model_save_file = model_dir / f"{model_name}-E{epoch}.pth"
             model.save(model_save_file)
         report_metrics("train", train_metrics, epoch + 1)
         print(f"Saved train record for epoch {epoch + 1}")
