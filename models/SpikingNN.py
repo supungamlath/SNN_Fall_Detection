@@ -52,7 +52,7 @@ class SpikingHiddenLayer(nn.Module):
 
         self.spike_fn = FastSigmoid.apply
 
-        weight_scale = 0.2
+        weight_scale = 0.02
 
         self.w_input = nn.Parameter(torch.empty((nb_inputs, nb_hidden)))
         nn.init.normal_(self.w_input, mean=0.0, std=weight_scale / np.sqrt(nb_inputs))
