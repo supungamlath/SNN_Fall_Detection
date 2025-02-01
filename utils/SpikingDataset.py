@@ -38,7 +38,7 @@ class SpikingDataset(Dataset):
         Reads the labels CSV file and extracts the 60 fall flag values for each video.
 
         Returns:
-            dict: A dictionary where keys are video names and values are lists of fall flags for each second.
+            dict: A dictionary where keys are video names and values are lists of fall flags for each window.
         """
         # Read the CSV file
         labels_file = os.path.join(self.root_dir, self.labels_csv)
@@ -53,7 +53,7 @@ class SpikingDataset(Dataset):
             video_name = row["name"]
             if self.camera1_only and "Camera1" not in video_name:
                 continue
-            fall_flags = [row[f"second_{i+1}"] for i in range(60)]
+            fall_flags = [row[f"window_{i+1}"] for i in range(60)]
 
             # Add to the dictionary
             fall_flags_dict[video_name] = fall_flags
