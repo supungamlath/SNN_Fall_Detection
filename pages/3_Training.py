@@ -107,12 +107,21 @@ if model_name:
             model = st.session_state["model"]
             trainer = BinaryTrainer(model=model)
 
-            train_metrics_hist, dev_metrics_hist = trainer.train(
+            train_metrics_hist, dev_metrics_hist = [], []
+
+            def evaluate_callback(metrics, epoch):
+                dev_metrics_hist.append(metrics)
+
+            def train_callback(metrics, epoch):
+                train_metrics_hist.append(metrics)
+
+            trainer.train(
                 train_loader,
                 nb_epochs=nb_epochs,
                 lr=learning_rate,
                 evaluate_dataloader=test_loader,
-                train_callback=print_loss_accuracy,
+                evaluate_callback=evaluate_callback,
+                train_callback=train_callback,
                 stop_early=early_stopping_option,
             )
             training_records[model_name][-1]["train_metrics_hist"] = train_metrics_hist
