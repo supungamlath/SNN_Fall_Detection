@@ -99,8 +99,17 @@ with cols[0]:
 
             st.session_state["model_name"] = selected_model
             with st.spinner("Loading model..."):
-                st.session_state["model"] = SpikingNN.load(model_path)
-                st.session_state["model_params"] = model_records[selected_model]
+                model_record = model_records[selected_model]
+                st.session_state["model_params"] = model_record
+                model = SpikingNN(
+                    layer_sizes=model_record["snn_layers"],
+                    nb_steps=model_record["nb_steps"],
+                    time_step=model_record["time_step"],
+                    tau_mem=model_record["tau_mem"],
+                    tau_syn=model_record["tau_syn"],
+                )
+                model.load(model_path)
+                st.session_state["model"] = model
             st.success(f"Model {selected_model} loaded successfully.")
         else:
             st.error("Please select a model to load.")
