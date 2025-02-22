@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 
-class SurrGradSpike(torch.autograd.Function):
+class FastSigmoid(torch.autograd.Function):
     """
     Here we implement our spiking nonlinearity which also implements
     the surrogate gradient. By subclassing torch.autograd.Function,
@@ -12,7 +12,7 @@ class SurrGradSpike(torch.autograd.Function):
     as this was done in Zenke & Ganguli (2018).
     """
 
-    scale = 100.0  # controls steepness of surrogate gradient
+    scale = 25.0  # controls steepness of surrogate gradient
 
     @staticmethod
     def forward(ctx, input):
@@ -37,7 +37,7 @@ class SurrGradSpike(torch.autograd.Function):
         """
         (input,) = ctx.saved_tensors
         grad_input = grad_output.clone()
-        grad = grad_input / (SurrGradSpike.scale * torch.abs(input) + 1.0) ** 2
+        grad = grad_input / (FastSigmoid.scale * torch.abs(input) + 1.0) ** 2
         return grad
 
 
@@ -50,9 +50,9 @@ class SpikingHiddenLayer(nn.Module):
         self.alpha = alpha
         self.beta = beta
 
-        self.spike_fn = SurrGradSpike.apply
+        self.spike_fn = FastSigmoid.apply
 
-        weight_scale = 0.2
+        weight_scale = 0.02
 
         self.w_input = nn.Parameter(torch.empty((nb_inputs, nb_hidden)))
         nn.init.normal_(self.w_input, mean=0.0, std=weight_scale / np.sqrt(nb_inputs))
@@ -74,7 +74,7 @@ class SpikingHiddenLayer(nn.Module):
         h1_from_input = torch.einsum("abc,cd->abd", (inputs, self.w_input))
         for t in range(self.nb_steps):
             h1 = h1_from_input[:, t] + torch.einsum("ab,bc->ac", (out, self.w_hidden))
-            mthr = mem - 1.0
+            mthr = mem - 1.0  # Reset by subtraction
             out = self.spike_fn(mthr)
             rst = out.detach()  # We do not want to backprop through the reset
 
@@ -146,7 +146,7 @@ class SpikingNN(nn.Module):
         self.beta = float(np.exp(-time_step / tau_mem))
 
         # Using ModuleList for hidden layers
-        nb_hidden_layers = len(layer_sizes) - 2
+        nb_hidden_layers = len(layer_sizes) - 1
         hidden_layers = []
         for i in range(nb_hidden_layers):
             hidden_layers.append(
@@ -159,29 +159,22 @@ class SpikingNN(nn.Module):
                 )
             )
         self.hidden_layers = nn.ModuleList(hidden_layers)
-        # Readout layer
-        self.readout_layer = SpikingReadoutLayer(layer_sizes[-2], layer_sizes[-1], nb_steps, self.alpha, self.beta)
 
         # Move the model to the GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dtype = torch.float32
         self.to(self.device, self.dtype)
 
-    def forward(self, x):
+    def forward(self, spk):
         # Forward pass through hidden layers
-        spk_recs = []
-        mem_recs = []
+        # Flatten the last two dimensions into one (height * width)
+        spk = torch.flatten(spk, start_dim=-2)
         for hidden_layer in self.hidden_layers:
-            x, mem_rec = hidden_layer(x)
-            spk_recs.append(x)
-            mem_recs.append(mem_rec)
-        # Forward pass through the readout layer
-        out = self.readout_layer(x)
-        return out, (spk_recs, mem_recs)
+            spk, mem = hidden_layer(spk)
+        return mem, spk
 
     def save(self, path):
-        torch.save(self, path)
+        torch.save(self.state_dict(), path)
 
-    @staticmethod
-    def load(path):
-        return torch.load(path, weights_only=True)
+    def load(self, path):
+        self.load_state_dict(torch.load(path, weights_only=True))

@@ -12,6 +12,7 @@ class SpikingDataset(Dataset):
         time_duration=60.0,
         read_csv=True,
         camera1_only=False,
+        multiclass = False,
     ):
         self.root_dir = root_dir
         self.time_duration = time_duration
@@ -22,6 +23,11 @@ class SpikingDataset(Dataset):
         self.scaling_factor = 1.57
         self.camera1_only = camera1_only
 
+        if multiclass:
+            self.labels_csv = "labels_multiclass_w1.0.csv"
+        else:
+            self.labels_csv = "labels_binary_w1.0.csv"
+
         if read_csv:
             labels = self.get_fall_flags()
             self.folder_names = list(labels.keys())
@@ -29,13 +35,13 @@ class SpikingDataset(Dataset):
 
     def get_fall_flags(self):
         """
-        Reads the labels.csv file and extracts the 60 fall flag values for each video.
+        Reads the labels CSV file and extracts the 60 fall flag values for each video.
 
         Returns:
-            dict: A dictionary where keys are video names and values are lists of fall flags for each second.
+            dict: A dictionary where keys are video names and values are lists of fall flags for each window.
         """
         # Read the CSV file
-        labels_file = os.path.join(self.root_dir, "labels.csv")
+        labels_file = os.path.join(self.root_dir, self.labels_csv)
         df = pd.read_csv(labels_file)
 
         # Initialize the result dictionary
@@ -47,7 +53,7 @@ class SpikingDataset(Dataset):
             video_name = row["name"]
             if self.camera1_only and "Camera1" not in video_name:
                 continue
-            fall_flags = [row[f"second_{i+1}"] for i in range(60)]
+            fall_flags = [row[f"window_{i+1}"] for i in range(60)]
 
             # Add to the dictionary
             fall_flags_dict[video_name] = fall_flags
@@ -59,21 +65,25 @@ class SpikingDataset(Dataset):
 
     def __getitem__(self, idx):
         events_file = self.folder_names[idx] + ".h5"
-        try:
-            spike_data = h5py.File(os.path.join(self.root_dir, self.folder_names[idx], events_file), "r")
+        events_file_path = os.path.join(self.root_dir, self.folder_names[idx], events_file)
+        with h5py.File(events_file_path, "r") as spike_data:
             spike_tuples = np.array(spike_data["events"])
             # Remove events that occur after max_timestamp
             spike_tuples = spike_tuples[spike_tuples[:, 0] < self.max_timestamp]
-            sample = {
-                "timestamp": spike_tuples[:, 0] / 1e6 * self.scaling_factor,
-                "x": spike_tuples[:, 1],
-                "y": spike_tuples[:, 2],
-                "polarity": spike_tuples[:, 3],
-            }
-            return sample, self.labels[idx]
-        except Exception as e:
-            print(f"Error reading {events_file}: {e}")
-            return None, None
+            spike_array = np.zeros(
+                spike_tuples.shape[0],
+                dtype=[
+                    ("t", np.float32),
+                    ("x", np.int32),
+                    ("y", np.int32),
+                    ("p", np.int32),
+                ],
+            )
+            spike_array["t"] = spike_tuples[:, 0] / 1e6 * self.scaling_factor
+            spike_array["x"] = spike_tuples[:, 1]
+            spike_array["y"] = spike_tuples[:, 2]
+            spike_array["p"] = spike_tuples[:, 3]
+            return spike_array, self.labels[idx]
 
     def edit_label(self, idx, label):
         self.labels[idx] = label
@@ -88,12 +98,7 @@ class SpikingDataset(Dataset):
         video_path = os.path.join(self.root_dir, self.folder_names[idx], "dvs-video.avi")
         return os.path.normpath(video_path)
 
-    def _adjust_to_batch_size(self, data, batch_size):
-        size = len(data)
-        adjusted_size = (size // batch_size) * batch_size
-        return data[:adjusted_size]
-
-    def random_split(self, batch_size, test_size=0.25, shuffle=True):
+    def random_split(self, test_size=0.25, shuffle=True):
         train_dataset = SpikingDataset(
             root_dir=self.root_dir,
             time_duration=self.time_duration,
@@ -123,17 +128,13 @@ class SpikingDataset(Dataset):
         train_data = combined[:-test_size_elements]
         test_data = combined[-test_size_elements:]
 
-        # Adjust data sizes to be divisible by batch_size
-        train_data = self._adjust_to_batch_size(train_data, batch_size)
-        test_data = self._adjust_to_batch_size(test_data, batch_size)
-
         # Separate folder names and labels
         train_dataset.folder_names, train_dataset.labels = zip(*train_data) if train_data else ([], [])
         test_dataset.folder_names, test_dataset.labels = zip(*test_data) if test_data else ([], [])
 
         return train_dataset, test_dataset
 
-    def split_by_subjects(self, batch_size):
+    def split_by_subjects(self):
         """
         Splits the dataset into training, development, and test subsets based on predefined subjects.
         """
@@ -185,10 +186,6 @@ class SpikingDataset(Dataset):
             elif subject in dev_subjects:
                 dev_data.append((folder_name, label))
 
-        train_data = self._adjust_to_batch_size(train_data, batch_size)
-        dev_data = self._adjust_to_batch_size(dev_data, batch_size)
-        test_data = self._adjust_to_batch_size(test_data, batch_size)
-
         # Raise error if any dataset is empty
         if not train_data:
             raise ValueError("Training dataset is empty!")
@@ -204,7 +201,7 @@ class SpikingDataset(Dataset):
 
         return train_dataset, dev_dataset, test_dataset
 
-    def split_by_trials(self, batch_size):
+    def split_by_trials(self):
         """
         Splits the dataset into training, development, and test sets based on trial information.
 
@@ -251,11 +248,6 @@ class SpikingDataset(Dataset):
             else:
                 train_data.append((folder_name, label))
 
-        # Adjust data to batch size
-        train_data = self._adjust_to_batch_size(train_data, batch_size)
-        dev_data = self._adjust_to_batch_size(dev_data, batch_size)
-        test_data = self._adjust_to_batch_size(test_data, batch_size)
-
         # Raise error if any dataset is empty
         if not train_data:
             raise ValueError("Training dataset is empty!")
@@ -279,6 +271,6 @@ class SpikingDataset(Dataset):
             }
         )
         df.to_csv(
-            os.path.join(self.root_dir, "labels.csv"),
+            os.path.join(self.root_dir, self.labels_csv),
             index=False,
         )
