@@ -1,5 +1,5 @@
 [DEFAULT]
-root_dir = C:\Users\IntelliSense04\Projects\SNN_Fall_Detection
+root_dir = 
 
 [MODEL]
 name = model
