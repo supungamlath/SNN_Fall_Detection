@@ -54,7 +54,7 @@ Modify the `config.txt` file to set parameters for the model, training, and data
 
 ```ini
 [DEFAULT]
-root_dir = ./data
+root_dir = ./
 
 [MODEL]
 name = SpikingNN
@@ -102,7 +102,7 @@ Explore the `notebooks/` directory for Jupyter notebooks that demonstrate specif
 
 ## ClearML
 
-This project uses ClearML for experiment tracking and model checkpoints. If you have a ClearML server set up, place the configuration in `data/clearml.conf`.
+This project uses ClearML for experiment tracking and saving model checkpoints. If you have a ClearML server set up, place the configuration in `data/clearml.conf`.
 
 ## License
 
@@ -110,5 +110,5 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 ## Acknowledgments
 
-- [ClearML](https://clear.ml/) for experiment tracking.
+- [ClearML](https://clear.ml/) for experiment tracking and saving model checkpoints.
 - [SNNTorch](https://snntorch.readthedocs.io/) for spiking neural network utilities.
