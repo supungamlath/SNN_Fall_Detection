@@ -36,8 +36,8 @@ This project implements a Spiking Neural Network (SNN) for processing spiking da
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd <repository-folder>
+   git clone https://github.com/supungamlath/SNN_Fall_Detection
+   cd SNN_Fall_Detection
    ```
 
 2. Install dependencies:
